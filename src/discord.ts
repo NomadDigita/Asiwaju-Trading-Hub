@@ -1,0 +1,207 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
+import crypto from 'crypto';
+import { runInvestmentCommittee } from './utils/committee';
+import { runBehavioralAudit } from './utils/guardian';
+import { generateStrategyAndBacktest } from './utils/lab';
+import { runNewsAudit } from './utils/sentinel';
+
+// Verify Token
+const discordToken = process.env.DISCORD_BOT_TOKEN;
+if (!discordToken) {
+  throw new Error("❌ Error: DISCORD_BOT_TOKEN is missing in .env");
+}
+
+// Initialize Client with necessary privileged intents
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+// Helper: Safely splits and sends long Markdown payloads (handles 2000-character limit)
+async function sendDiscordSafeMessage(message: any, text: string) {
+  const CHAR_LIMIT = 1900; // Leave buffer margin for formatting
+
+  if (text.length <= CHAR_LIMIT) {
+    return message.reply(text);
+  }
+
+  const lines = text.split('\n');
+  let currentChunk = "";
+  let inPreBlock = false;
+
+  for (const line of lines) {
+    // Track if we are inside a code block fence
+    if (line.includes('```')) {
+      inPreBlock = !inPreBlock;
+    }
+
+    // Evaluate buffer ceiling
+    if (currentChunk.length + line.length + 15 > CHAR_LIMIT) {
+      let sendText = currentChunk;
+      if (inPreBlock) {
+        sendText += '\n```'; // Close block fence for this specific message
+      }
+
+      await message.reply(sendText);
+
+      // Carry over code block tag to the new message if split occurred inside code
+      currentChunk = inPreBlock ? '```python\n' : '';
+    }
+
+    currentChunk += line + '\n';
+  }
+
+  if (currentChunk.trim().length > 0) {
+    await message.reply(currentChunk);
+  }
+}
+
+// Secure signature generation for Bitget
+function getBitgetHeaders(method: string, requestPath: string, body = ''): Record<string, string> {
+  const apiKey = process.env.BITGET_API_KEY || '';
+  const secretKey = process.env.BITGET_SECRET_KEY || '';
+  const passphrase = process.env.BITGET_PASSPHRASE || '';
+
+  const timestamp = Date.now().toString();
+  const preHash = timestamp + method + requestPath + body;
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(preHash)
+    .digest('base64');
+
+  return {
+    'ACCESS-KEY': apiKey,
+    'ACCESS-SIGN': signature,
+    'ACCESS-TIMESTAMP': timestamp,
+    'ACCESS-PASSPHRASE': passphrase,
+    'locale': 'en-US',
+    'Content-Type': 'application/json'
+  };
+}
+
+// Client Startup Event
+client.once('ready', () => {
+  console.log(`🚀 Asiwaju Discord Companion Bot is online as ${client.user?.tag}`);
+});
+
+// Message Routing Listener
+client.on('messageCreate', async (message) => {
+  // Ignore bot messages
+  if (message.author.bot) return;
+
+  const content = message.content.trim();
+
+  // 1. !balance Command
+  if (content === '!balance') {
+    message.reply("🛰️ Interrogating Bitget V2 API, please wait...");
+
+    const requestPath = '/api/v2/spot/account/assets';
+    const headers = getBitgetHeaders('GET', requestPath);
+
+    try {
+      const response = await fetch('https://api.bitget.com' + requestPath, {
+        method: 'GET',
+        headers: headers
+      });
+
+      const result = await response.json();
+
+      if (result.code === '00000' && Array.isArray(result.data)) {
+        const activeBalances = result.data.filter((asset: any) => parseFloat(asset.available) > 0);
+
+        if (activeBalances.length === 0) {
+          return message.reply("💰 Your Spot wallet is currently empty.");
+        }
+
+        let replyMessage = "📊 **Asiwaju Spot Portfolio Summary**\n\n";
+        activeBalances.forEach((asset: any) => {
+          const available = parseFloat(asset.available).toFixed(4);
+          replyMessage += `• **${asset.coin}**: ${available}\n`;
+        });
+
+        await message.reply(replyMessage);
+      } else {
+        message.reply(`❌ Exchange Error: ${result.msg || 'Handshake failed'}`);
+      }
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Connection timeout. Check local proxy or network tunnel status.");
+    }
+  }
+
+  // 2. !research Command (Investment Committee)
+  if (content.startsWith('!research')) {
+    const args = content.split(' ');
+    const coin = args[1]?.trim();
+
+    if (!coin) {
+      return message.reply("❌ Error: Ticker missing. Format: `!research SOL` or `!research BTC`");
+    }
+
+    const coinUpper = coin.toUpperCase();
+    message.reply(`🎬 Convening the Asiwaju AI Investment Committee to analyze ${coinUpper}...\nThis may take up to 15 seconds.`);
+
+    try {
+      const report = await runInvestmentCommittee(coinUpper);
+      await sendDiscordSafeMessage(message, report);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Failed to resolve consensus. Check the AI gateway log.");
+    }
+  }
+
+  // 3. !audit Command (Anti-Liquidator)
+  if (content === '!audit') {
+    message.reply("🛡️ Fetching spot trade history and generating behavioral risk audit...");
+
+    try {
+      const report = await runBehavioralAudit();
+      await sendDiscordSafeMessage(message, report);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Failed to generate portfolio audit. Check the AI gateway log.");
+    }
+  }
+
+  // 4. !strategy Command (Strategy Compiler & Backtester)
+  if (content.startsWith('!strategy')) {
+    const args = content.split(' ');
+    const strategyPrompt = args.slice(1).join(' ').trim();
+
+    if (!strategyPrompt) {
+      return message.reply("❌ Error: Strategy missing. Format: `!strategy Buy when RSI < 30, sell when price gains 4%`");
+    }
+
+    message.reply(`🧪 Translating strategy into quantitative code and running simulated backtest...`);
+
+    try {
+      const report = await generateStrategyAndBacktest(strategyPrompt);
+      await sendDiscordSafeMessage(message, report);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Failed to compile strategy. Check the AI gateway log.");
+    }
+  }
+
+  // 5. !news Command (Sentinel News Terminal)
+  if (content === '!news') {
+    message.reply("📡 Querying global macro headlines and generating market intelligence...");
+
+    try {
+      const report = await runNewsAudit();
+      await sendDiscordSafeMessage(message, report);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Failed to compile news audit. Check the AI gateway log.");
+    }
+  }
+});
+
+// Log Client In
+client.login(discordToken);
