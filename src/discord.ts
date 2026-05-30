@@ -7,7 +7,7 @@ import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
-import { scanMarketOpportunity, executeApprovedTrade, TradeProposal } from './utils/agent';
+import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, TradeProposal } from './utils/agent';
 
 // Verify Token
 const discordToken = process.env.DISCORD_BOT_TOKEN;
@@ -24,8 +24,9 @@ const client = new Client({
   ]
 });
 
-// Localized map to securely hold pending proposals per user guild session
+// Localized maps to securely hold states per user guild session
 const pendingProposals = new Map<string, TradeProposal>();
+let isAutopilotOn = false;
 
 // Helper: Safely splits and sends long Markdown payloads (handles 2000-character limit)
 async function sendDiscordSafeMessage(message: any, text: string) {
@@ -234,7 +235,7 @@ client.on('messageCreate', async (message) => {
         `• **Quantity:** ${proposal.quantity}\n` +
         `• **Take Profit Target:** $${parseFloat(proposal.takeProfit).toFixed(2)}\n` +
         `• **Stop Loss Invalidation:** $${parseFloat(proposal.stopLoss).toFixed(2)}\n\n` +
-        `• **Justification:** ${proposal.reason}\n\n` +
+        `📝 **Justification:** ${proposal.reason}\n\n` +
         `⚡ **Awaiting Permission:** Reply with \`!approve\` to execute this trade on Bitget!`;
 
       await sendDiscordSafeMessage(message, replyText);
@@ -267,6 +268,35 @@ client.on('messageCreate', async (message) => {
     } catch (error) {
       console.error(error);
       message.reply("❌ Handshake timeout. Transaction rejected.");
+    }
+  }
+
+  // 8. !autopilot Command (Autonomous Autopilot Trading Toggle)
+  if (content === '!autopilot') {
+    isAutopilotOn = !isAutopilotOn;
+
+    if (isAutopilotOn) {
+      message.reply("🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on SOL...");
+      try {
+        const result = await runAutopilotExecution("SOL");
+        const [status, symbol, side, price, details] = result.split(":");
+
+        if (status === "EXECUTED") {
+          const replyText = `🎯 **Autopilot Trade Executed Live!** 🎯\n\n` +
+            `• **Asset:** ${symbol}\n` +
+            `• **Direction:** ${side}\n` +
+            `• **Execution Price:** $${parseFloat(price).toFixed(2)}\n` +
+            `• **Bitget Order ID:** \`${details}\` [4]`;
+          await sendDiscordSafeMessage(message, replyText);
+        } else {
+          message.reply(`🤖 [Autopilot] Scan complete. Safety abort status: ${result}`);
+        }
+      } catch (error) {
+        console.error(error);
+        message.reply("❌ Exception during autopilot execution loop.");
+      }
+    } else {
+      message.reply("🤖 [Autopilot] Mode DISENGAGED. Reverting to manual approval.");
     }
   }
 });

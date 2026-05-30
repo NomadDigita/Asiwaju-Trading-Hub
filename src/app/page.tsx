@@ -15,48 +15,6 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// HELPER: DYNAMIC SVG COORDINATE MAPPER (Generates path based on actual PnL)
-// -------------------------------------------------------------
-function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-  const points = 15;
-  const coords: { x: number; y: number }[] = [];
-  
-  // Seeded curve generator ending precisely at the AI's return metric
-  let currentVal = 100;
-  const targetVal = 100 + (pnl * 3); // Amplify minor PnL changes slightly for visual impact
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    if (i === 0) {
-      currentVal = 100;
-    } else if (i === points - 1) {
-      currentVal = targetVal;
-    } else {
-      const progress = i / (points - 1);
-      const expectedVal = 100 + ((targetVal - 100) * progress);
-      // Generate realistic structural waves using sine frequencies
-      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-      currentVal = expectedVal + wave;
-    }
-
-    // Map values (constrained from 75 to 135) to height coordinates
-    const minVal = 70;
-    const maxVal = 135;
-    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-  }
-
-  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-}
-
-// Helper to generate the shaded fill area beneath the line
-function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-  const linePath = generateSvgPath(pnlPercentStr, width, height);
-  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-}
-
-// -------------------------------------------------------------
 // AI MARKDOWN PARSERS
 // -------------------------------------------------------------
 
@@ -158,6 +116,39 @@ function parseSentinelReport(md: string) {
   };
 }
 
+// Generates an SVG path string for a 30-day equity curve ending at a specific PnL percentage
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3);
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
+}
+
 // -------------------------------------------------------------
 // MAIN DASHBOARD COMPONENT
 // -------------------------------------------------------------
@@ -225,6 +216,7 @@ export default function Dashboard() {
     reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
   });
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
+  const [isAutopilot, setIsAutopilot] = useState(false);
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -347,6 +339,40 @@ export default function Dashboard() {
       setExecutionMessage("❌ Exception during SDK routing. Auto-blocked.");
     } finally {
       setIsSimulating(false);
+    }
+  };
+
+  // 7. Toggle Autopilot Execution Loop (Autopilot API)
+  const handleAutopilotToggle = async () => {
+    const nextState = !isAutopilot;
+    setIsAutopilot(nextState);
+
+    if (nextState) {
+      setExecutionMessage("🤖 [Autopilot] Mode Engaged. Commencing active market monitoring...");
+      try {
+        const response = await fetch("/api/autopilot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coin: coinInput })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setExecutionMessage(
+            `🤖 [Autopilot] Setup Verified! direct order dispatched.\n` +
+            `🎯 [Exchange] ${data.message} | Order ID: ${data.orderId}`
+          );
+          setAgentProposal(null);
+        } else {
+          // If aborted by AI (e.g. "NO_SETUP")
+          setExecutionMessage(`🤖 [Autopilot] Scan complete. Safety abort status: ${data.message}`);
+        }
+      } catch (err) {
+        console.error(err);
+        setExecutionMessage("❌ Exception during autopilot handshake loop.");
+      }
+    } else {
+      setExecutionMessage("🤖 [Autopilot] Mode Disengaged. Reverting to manual approval.");
     }
   };
 
@@ -593,9 +619,7 @@ export default function Dashboard() {
                         <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00f0ff" floodOpacity="0.6" />
                       </filter>
                     </defs>
-                    {/* Shaded Area */}
                     <path d={generateSvgAreaPath(strategyReport.pnl, 300, 80)} fill="url(#chart-gradient)" />
-                    {/* Glowing Line */}
                     <path d={generateSvgPath(strategyReport.pnl, 300, 80)} fill="none" stroke="#00f0ff" strokeWidth="2.5" filter="url(#glow)" />
                   </svg>
                 </div>
@@ -705,7 +729,8 @@ export default function Dashboard() {
 
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in-up">
+            {/* Control Bar - [White Frosted Highlight Glass] */}
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
@@ -728,6 +753,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Display Results */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {agentProposal ? (
                 <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-slow">
@@ -781,6 +807,28 @@ export default function Dashboard() {
                       <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Justification Brief:</span>
                       <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{agentProposal.reason}</p>
                     </div>
+
+                    {/* Autopilot Control Card */}
+                    <div className="p-4 bg-violet-600/10 border border-violet-500/20 rounded-xl flex items-center justify-between mt-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`h-3 w-3 rounded-full ${isAutopilot ? 'bg-emerald-400 animate-pulse' : 'bg-white/10'}`} />
+                        <div>
+                          <h4 className="text-[10px] font-extrabold text-white uppercase tracking-wider">Autopilot Execution Mode</h4>
+                          <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals [4].</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleAutopilotToggle}
+                        className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                          ${isAutopilot 
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+                            : 'bg-white/5 border-white/10 text-white/40'
+                          }`}
+                      >
+                        {isAutopilot ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+
                   </div>
 
                   <button
@@ -799,6 +847,7 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* Right Column: Execution Log Console */}
               <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">

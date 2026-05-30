@@ -7,7 +7,7 @@ import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
-import { scanMarketOpportunity, executeApprovedTrade, TradeProposal } from './utils/agent';
+import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, TradeProposal } from './utils/agent';
 
 // Verify Bot Token
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -17,8 +17,9 @@ if (!botToken) {
 
 const bot = new Telegraf(botToken);
 
-// Localized map to securely hold pending proposals per user chat session
+// Localized maps to securely hold states per user chat session
 const pendingProposals = new Map<number, TradeProposal>();
+let isAutopilotOn = false;
 
 // Helper to escape raw HTML special characters
 function escapeHtml(text: string): string {
@@ -125,7 +126,8 @@ bot.start((ctx) => {
     "👉 /audit - Run the Anti-Liquidator Behavioral Risk Audit\n" +
     "👉 /strategy <PROMPT> - Compile and backtest a strategy\n" +
     "👉 /news - Check market sentiment and FUD/FOMO signals\n" +
-    "👉 /trade <COIN> - Prompt the AI Agent to scan market setups (e.g., /trade SOL)"
+    "👉 /trade <COIN> - Prompt the AI Agent to scan market setups\n" +
+    "👉 /autopilot - Toggle the Autonomous Autopilot Trader ON/OFF"
   );
 });
 
@@ -298,6 +300,35 @@ bot.command('approve', async (ctx) => {
   } catch (error) {
     console.error(error);
     ctx.reply("❌ Handshake timeout. Transaction rejected.");
+  }
+});
+
+// 9. Autonomous Autopilot Trading Toggle Command
+bot.command('autopilot', async (ctx) => {
+  isAutopilotOn = !isAutopilotOn;
+
+  if (isAutopilotOn) {
+    ctx.reply("🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on SOL...");
+    try {
+      const result = await runAutopilotExecution("SOL");
+      const [status, symbol, side, price, details] = result.split(":");
+
+      if (status === "EXECUTED") {
+        const message = `🎯 **Autopilot Trade Executed Live!** 🎯\n\n` +
+          `• **Asset:** ${symbol}\n` +
+          `• **Direction:** ${side}\n` +
+          `• **Price:** $${parseFloat(price).toFixed(2)}\n` +
+          `• **Bitget Order ID:** \`${details}\` [4]`;
+        await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
+      } else {
+        ctx.reply(`🤖 [Autopilot] Scan complete. Safety abort status: ${result}`);
+      }
+    } catch (error) {
+      console.error(error);
+      ctx.reply("❌ Exception during autopilot execution loop.");
+    }
+  } else {
+    ctx.reply("🤖 [Autopilot] Mode DISENGAGED. Reverting to manual approval.");
   }
 });
 
