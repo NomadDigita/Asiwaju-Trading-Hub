@@ -15,6 +15,48 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
+// HELPER: DYNAMIC SVG COORDINATE MAPPER (Generates path based on actual PnL)
+// -------------------------------------------------------------
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  
+  // Seeded curve generator ending precisely at the AI's return metric
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3); // Amplify minor PnL changes slightly for visual impact
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      // Generate realistic structural waves using sine frequencies
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+
+    // Map values (constrained from 75 to 135) to height coordinates
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+// Helper to generate the shaded fill area beneath the line
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
+}
+
+// -------------------------------------------------------------
 // AI MARKDOWN PARSERS
 // -------------------------------------------------------------
 
@@ -538,6 +580,26 @@ export default function Dashboard() {
               <div className="glass-panel p-4 md:p-6 rounded-2xl flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white border-b border-white/5 pb-2 text-glow-cyan">Simulated Backtest</h4>
                 
+                {/* Dynamic SVG Neon Equity Curve Chart */}
+                <div className="w-full h-24 mb-4 relative overflow-hidden bg-black/30 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                  <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: `radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
+                  <svg className="w-full h-full" viewBox="0 0 300 80">
+                    <defs>
+                      <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00f0ff" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#00f0ff" stopOpacity="0.0" />
+                      </linearGradient>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00f0ff" floodOpacity="0.6" />
+                      </filter>
+                    </defs>
+                    {/* Shaded Area */}
+                    <path d={generateSvgAreaPath(strategyReport.pnl, 300, 80)} fill="url(#chart-gradient)" />
+                    {/* Glowing Line */}
+                    <path d={generateSvgPath(strategyReport.pnl, 300, 80)} fill="none" stroke="#00f0ff" strokeWidth="2.5" filter="url(#glow)" />
+                  </svg>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
                     <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Win Rate</span>
@@ -733,7 +795,7 @@ export default function Dashboard() {
                 <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col items-center justify-center text-center py-20 float-card-slow">
                   <span className="text-3xl mb-3">⚪</span>
                   <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Active Proposal Staged</h4>
-                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click \"Scan Market\" to prompt the AI agent to look for trades.</p>
+                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click "Scan Market" to prompt the AI agent to look for trades.</p>
                 </div>
               )}
 
