@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { scanMarketOpportunity, executeApprovedTrade, TradeProposal } from "@/utils/agent";
+import { scanMarketOpportunity, TradeProposal } from "@/utils/agent";
+import { AsiwajuAgentShield } from "@/infra/ShieldSDK";
+import { TradeRequest } from "@/infra/RiskGuardrail";
 
-// GET endpoint: Scans for active trade setups
+// GET: Scans for active trade setups via Qwen/MuleRun
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const coin = searchParams.get("coin") || "SOL";
@@ -18,7 +20,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST endpoint: Executes the authorized trade proposal on Bitget
+// POST: Runs the trade proposal through our Shield SDK before executing on Bitget
 export async function POST(request: Request) {
   try {
     const proposal: TradeProposal = await request.json();
@@ -26,15 +28,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid trade proposal payload." }, { status: 400 });
     }
 
-    // Execute the live transaction
-    const executionResult = await executeApprovedTrade(proposal);
-    const [status, details] = executionResult.split(":");
+    // Map proposal to the structured TradeRequest expected by the Shield SDK
+    const tradeRequest: TradeRequest = {
+      symbol: proposal.symbol,
+      side: proposal.side,
+      price: parseFloat(proposal.price),
+      quantity: parseFloat(proposal.quantity)
+    };
 
-    if (status === "SUCCESS") {
-      return NextResponse.json({ success: true, orderId: details });
-    } else {
-      return NextResponse.json({ success: false, error: details }, { status: 400 });
-    }
+    // Execute the complete defensive pipeline using our custom SDK
+    const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+      `Execute approved trade proposal for ${proposal.symbol} at market price.`, 
+      tradeRequest
+    );
+
+    return NextResponse.json({
+      success: shieldReport.success,
+      promptSafety: shieldReport.promptSafety,
+      riskGuardrail: shieldReport.riskGuardrail,
+      message: shieldReport.message,
+      orderId: shieldReport.orderId
+    });
+
   } catch (error: any) {
     console.error("API Error in Agent Execution Route:", error);
     return NextResponse.json({ error: error.message || "Failed to execute transaction." }, { status: 500 });

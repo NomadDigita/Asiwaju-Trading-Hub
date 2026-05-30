@@ -117,7 +117,7 @@ function parseSentinelReport(md: string) {
 }
 
 // -------------------------------------------------------------
-// MAIN DASHBOARD
+// MAIN DASHBOARD COMPONENT
 // -------------------------------------------------------------
 
 export default function Dashboard() {
@@ -177,7 +177,7 @@ export default function Dashboard() {
     symbol: "SOLUSDT",
     side: "buy",
     price: "172.50",
-    quantity: "0.03",
+    quantity: "0.028",
     stopLoss: "168.18",
     takeProfit: "181.12",
     reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
@@ -276,11 +276,12 @@ export default function Dashboard() {
     }
   };
 
-  // 6. Execute Approved Trade (Trading Agent Order Placement API)
+  // 6. Execute Approved Trade (ShieldSDK Pipeline API)
   const handleExecuteTrade = async () => {
     if (!agentProposal) return;
     setIsSimulating(true);
-    setExecutionMessage("🛰️ Broadcasting signed market order to Bitget Spot V2...");
+    setExecutionMessage("🔒 [ShieldSDK] Intercepting order... Running full-stack safety analysis...");
+    
     try {
       const response = await fetch("/api/agent", {
         method: "POST",
@@ -288,15 +289,20 @@ export default function Dashboard() {
         body: JSON.stringify(agentProposal)
       });
       const data = await response.json();
+      
       if (data.success) {
-        setExecutionMessage(`🎯 Trade Executed Live! Order ID: ${data.orderId}`);
+        setExecutionMessage(
+          `🔒 [ShieldSDK] Prompt Security: ${data.promptSafety} ✅\n` +
+          `🛡️ [ShieldSDK] Code Guardrails: ${data.riskGuardrail} ✅\n` +
+          `🎯 [Exchange] Trade Executed! Order ID: ${data.orderId}`
+        );
         setAgentProposal(null); // Clear proposal on success
       } else {
-        setExecutionMessage(`❌ Order rejected: ${data.error || "Execution failed."}`);
+        setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
       }
     } catch (err) {
       console.error(err);
-      setExecutionMessage("❌ Exchange connection lost or timeout.");
+      setExecutionMessage("❌ Exception during SDK routing. Auto-blocked.");
     } finally {
       setIsSimulating(false);
     }
@@ -635,12 +641,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ==============================================================
-           TAB 5: THE AI AGENT (AUTONOMOUS EXECUTION CONSOLE)
-           ============================================================== */}
+        {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
           <div className="space-y-6">
-            {/* Control Bar - [White Frosted Highlight Glass] */}
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
@@ -663,10 +666,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Display Results */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Left Column: Proposal Details */}
               {agentProposal ? (
                 <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-slow">
                   <div className="space-y-4">
@@ -721,7 +721,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Approve Action Button */}
                   <button
                     onClick={handleExecuteTrade}
                     disabled={isSimulating}
@@ -734,11 +733,10 @@ export default function Dashboard() {
                 <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col items-center justify-center text-center py-20 float-card-slow">
                   <span className="text-3xl mb-3">⚪</span>
                   <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Active Proposal Staged</h4>
-                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click "Scan Market" to prompt the AI agent to look for trades.</p>
+                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click \"Scan Market\" to prompt the AI agent to look for trades.</p>
                 </div>
               )}
 
-              {/* Right Column: Execution Log Console */}
               <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
@@ -749,7 +747,7 @@ export default function Dashboard() {
                       <div className="text-emerald-400 mt-4 animate-pulse">&gt; {executionMessage}</div>
                     )}
                   </div>
-                  <div className="text-[9px] text-white/20 uppercase tracking-widest">ASIWAJU_TERMINAL_OUT</div>
+                  <div className="text-[9px] text-white/20 uppercase tracking-widest font-mono">ASIWAJU_TERMINAL_OUT</div>
                 </div>
               </div>
 
