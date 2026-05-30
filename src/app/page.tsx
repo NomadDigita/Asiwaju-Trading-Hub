@@ -2,10 +2,20 @@
 
 import React, { useState } from "react";
 
-type Tab = "committee" | "guardian" | "lab" | "sentinel";
+type Tab = "committee" | "guardian" | "lab" | "sentinel" | "agent";
+
+interface TradeProposal {
+  symbol: string;
+  side: "buy" | "sell";
+  price: string;
+  quantity: string;
+  stopLoss: string;
+  takeProfit: string;
+  reason: string;
+}
 
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Dissects raw AI outputs into dashboard blocks)
+// AI MARKDOWN PARSERS
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
@@ -107,7 +117,7 @@ function parseSentinelReport(md: string) {
 }
 
 // -------------------------------------------------------------
-// MAIN DASHBOARD COMPONENT
+// MAIN DASHBOARD
 // -------------------------------------------------------------
 
 export default function Dashboard() {
@@ -162,7 +172,19 @@ export default function Dashboard() {
     tactical: "With extreme FOMO prevalent, scale into long positions. Utilize trailing stop-losses to capture upside momentum."
   });
 
-  // 1. Convene Investment Committee (War Room API Call)
+  // Trading Agent States
+  const [agentProposal, setAgentProposal] = useState<TradeProposal | null>({
+    symbol: "SOLUSDT",
+    side: "buy",
+    price: "172.50",
+    quantity: "0.03",
+    stopLoss: "168.18",
+    takeProfit: "181.12",
+    reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
+  });
+  const [executionMessage, setExecutionMessage] = useState<string | null>(null);
+
+  // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
     setIsSimulating(true);
     try {
@@ -174,18 +196,15 @@ export default function Dashboard() {
       const data = await response.json();
       if (data.report) {
         setCommitteeReport(parseCommitteeReport(data.report));
-      } else {
-        alert("API returned empty data.");
       }
     } catch (err) {
       console.error(err);
-      alert(" Handshake timeout or connection lost.");
     } finally {
       setIsSimulating(false);
     }
   };
 
-  // 2. Behavioral Audit (Guardian API Call)
+  // 2. Behavioral Audit (Guardian API)
   const handleRunAudit = async () => {
     setIsSimulating(true);
     try {
@@ -201,7 +220,7 @@ export default function Dashboard() {
     }
   };
 
-  // 3. Compile Strategy (Strategy Lab API Call)
+  // 3. Compile Strategy (Strategy Lab API)
   const handleCompileStrategy = async () => {
     setIsSimulating(true);
     try {
@@ -221,7 +240,7 @@ export default function Dashboard() {
     }
   };
 
-  // 4. Query Sentinel News (Sentinel API Call)
+  // 4. Query Sentinel News (Sentinel API)
   const handleRunSentinel = async () => {
     setIsSimulating(true);
     try {
@@ -237,22 +256,69 @@ export default function Dashboard() {
     }
   };
 
+  // 5. Scan Market Setup (Trading Agent Scan API)
+  const handleAgentScan = async () => {
+    setIsSimulating(true);
+    setExecutionMessage(null);
+    try {
+      const response = await fetch(`/api/agent?coin=${coinInput}`);
+      const data = await response.json();
+      if (data && data.symbol) {
+        setAgentProposal(data);
+      } else {
+        setAgentProposal(null);
+        setExecutionMessage("⚪ Sentiment ranges. No high-probability setups detected.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  // 6. Execute Approved Trade (Trading Agent Order Placement API)
+  const handleExecuteTrade = async () => {
+    if (!agentProposal) return;
+    setIsSimulating(true);
+    setExecutionMessage("🛰️ Broadcasting signed market order to Bitget Spot V2...");
+    try {
+      const response = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(agentProposal)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setExecutionMessage(`🎯 Trade Executed Live! Order ID: ${data.orderId}`);
+        setAgentProposal(null); // Clear proposal on success
+      } else {
+        setExecutionMessage(`❌ Order rejected: ${data.error || "Execution failed."}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setExecutionMessage("❌ Exchange connection lost or timeout.");
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   return (
     <div className="w-full mt-6 space-y-8 animate-fade-in-up">
       
-      {/* Tab Dock Bar */}
-      <nav className="flex justify-center float-card-slow">
-        <div className="flex items-center gap-1.5 p-1.5 bg-white/5 rounded-2xl border border-white/8 backdrop-blur-md">
+      {/* Scrollable Mobile Navigation Dock */}
+      <nav className="flex justify-center max-w-full float-card-slow">
+        <div className="flex items-center gap-1.5 p-1.5 bg-white/5 rounded-2xl border border-white/8 backdrop-blur-md overflow-x-auto max-w-full scrollbar-none whitespace-nowrap">
           {[
             { id: "committee", label: "🏛️ War Room" },
             { id: "guardian", label: "🛡️ Guardian" },
             { id: "lab", label: "🧪 Strategy Lab" },
-            { id: "sentinel", label: "📡 Sentinel" }
+            { id: "sentinel", label: "📡 Sentinel" },
+            { id: "agent", label: "🤖 AI Agent" }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as Tab)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer
+              className={`px-4 md:px-6 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase transition-all duration-300 cursor-pointer inline-block
                 ${activeTab === tab.id 
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-inner" 
                   : "text-white/70 hover:text-white hover:bg-white/5 border border-transparent"
@@ -264,13 +330,13 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Tab Panel Context */}
-      <div className="w-full">
+      {/* Dynamic Tab Panels */}
+      <div className="w-full px-1 md:px-0">
         
         {/* TAB 1: WAR ROOM */}
         {activeTab === "committee" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Convene the AI Investment Committee</h3>
                 <p className="text-xs font-semibold text-white/90">Prompt parallel specialized analysts to debate market metrics & technical trend directions.</p>
@@ -293,7 +359,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-6 rounded-2xl glass-panel-hover float-card-slow">
+              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-cyan-400 font-bold">📈</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
@@ -301,7 +367,7 @@ export default function Dashboard() {
                 <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.tech}</p>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
+              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-rose-400 font-bold">🛡️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
@@ -309,7 +375,7 @@ export default function Dashboard() {
                 <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.risk}</p>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
+              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-emerald-400 font-bold">⛓️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
@@ -318,7 +384,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="glass-panel p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
+            <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⚖️</span>
@@ -354,8 +420,7 @@ export default function Dashboard() {
         {/* TAB 2: GUARDIAN */}
         {activeTab === "guardian" && (
           <div className="space-y-6">
-            {/* Convene Input Card */}
-            <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
                 <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
@@ -370,7 +435,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
+              <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
                 <div>
                   <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Behavioral Health</h3>
                   <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Discipline Metric</p>
@@ -402,7 +467,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium">
+              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium">
                 <div>
                   <h3 className="text-sm font-extrabold text-white uppercase tracking-widest border-b border-white/5 pb-3 mb-4 text-glow-cyan">Detected Psychological Biases</h3>
                   <p className="text-xs font-semibold text-white/90 leading-relaxed mb-4">{auditReport.evaluation}</p>
@@ -437,7 +502,7 @@ export default function Dashboard() {
         {/* TAB 3: THE STRATEGY LAB */}
         {activeTab === "lab" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1 w-full">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Strategy Lab Compiler</h3>
                 <input
@@ -457,14 +522,14 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col h-[400px] float-card-slow">
+              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col h-[400px] float-card-slow">
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Generated Python Code</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5">
                   <pre>{strategyReport.code}</pre>
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
+              <div className="glass-panel p-4 md:p-6 rounded-2xl flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white border-b border-white/5 pb-2 text-glow-cyan">Simulated Backtest</h4>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -498,8 +563,7 @@ export default function Dashboard() {
         {/* TAB 4: THE SENTINEL */}
         {activeTab === "sentinel" && (
           <div className="space-y-6">
-            {/* Input card trigger */}
-            <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Sentinel News & Macro Analyst</h3>
                 <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
@@ -514,7 +578,7 @@ export default function Dashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
+              <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
                 <div>
                   <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Market Hype Index</h3>
                   <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Fear & Greed Hybrid</p>
@@ -546,7 +610,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
+              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Major Sentiment Drivers</h4>
                   <div className="space-y-4">
@@ -567,6 +631,128 @@ export default function Dashboard() {
                   <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{sentinelReport.tactical}</p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==============================================================
+           TAB 5: THE AI AGENT (AUTONOMOUS EXECUTION CONSOLE)
+           ============================================================== */}
+        {activeTab === "agent" && (
+          <div className="space-y-6">
+            {/* Control Bar - [White Frosted Highlight Glass] */}
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
+                <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  value={coinInput}
+                  onChange={(e) => setCoinInput(e.target.value.toUpperCase())}
+                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-2.5 text-sm font-bold text-white w-24 text-center focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  onClick={handleAgentScan}
+                  disabled={isSimulating}
+                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                >
+                  {isSimulating ? "SCANNING..." : "Scan Market Opportunity"}
+                </button>
+              </div>
+            </div>
+
+            {/* Display Results */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Left Column: Proposal Details */}
+              {agentProposal ? (
+                <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-slow">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">🤖</span>
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-white text-glow-cyan">Pending Trade Proposal</h4>
+                          <p className="text-[9px] text-white/40 uppercase font-mono tracking-widest">Autonomous Detection Module</p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest animate-pulse">
+                        Awaiting Permission
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Asset</span>
+                        <div className="text-sm font-bold text-white mt-0.5">{agentProposal.symbol}</div>
+                      </div>
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Action</span>
+                        <div className={`text-sm font-bold mt-0.5 uppercase ${agentProposal.side === 'buy' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {agentProposal.side}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Price</span>
+                        <div className="text-sm font-bold text-cyan-400 mt-0.5">${parseFloat(agentProposal.price).toFixed(2)}</div>
+                      </div>
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Quantity</span>
+                        <div className="text-sm font-bold text-white mt-0.5">{agentProposal.quantity}</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Take Profit Target</span>
+                        <div className="text-sm font-bold text-emerald-400 mt-0.5">${parseFloat(agentProposal.takeProfit).toFixed(2)}</div>
+                      </div>
+                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Stop Loss Invalidation</span>
+                        <div className="text-sm font-bold text-rose-400 mt-0.5">${parseFloat(agentProposal.stopLoss).toFixed(2)}</div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
+                      <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Justification Brief:</span>
+                      <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{agentProposal.reason}</p>
+                    </div>
+                  </div>
+
+                  {/* Approve Action Button */}
+                  <button
+                    onClick={handleExecuteTrade}
+                    disabled={isSimulating}
+                    className="w-full py-4 bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSimulating ? "BROADCASTING TRANSACTION..." : "⚡ Approve & Execute Transaction"}
+                  </button>
+                </div>
+              ) : (
+                <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col items-center justify-center text-center py-20 float-card-slow">
+                  <span className="text-3xl mb-3">⚪</span>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Active Proposal Staged</h4>
+                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click "Scan Market" to prompt the AI agent to look for trades.</p>
+                </div>
+              )}
+
+              {/* Right Column: Execution Log Console */}
+              <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
+                <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
+                  <div>
+                    <div className="text-cyan-600 mb-2">&gt; Initializing agent execution logger...</div>
+                    <div className="text-white/40">&gt; Awaiting order permission signals...</div>
+                    {executionMessage && (
+                      <div className="text-emerald-400 mt-4 animate-pulse">&gt; {executionMessage}</div>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-white/20 uppercase tracking-widest">ASIWAJU_TERMINAL_OUT</div>
+                </div>
+              </div>
+
             </div>
           </div>
         )}

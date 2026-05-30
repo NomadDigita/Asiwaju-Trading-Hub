@@ -7,6 +7,7 @@ import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
+import { scanMarketOpportunity, executeApprovedTrade, TradeProposal } from './utils/agent';
 
 // Verify Bot Token
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -15,6 +16,9 @@ if (!botToken) {
 }
 
 const bot = new Telegraf(botToken);
+
+// Localized map to securely hold pending proposals per user chat session
+const pendingProposals = new Map<number, TradeProposal>();
 
 // Helper to escape raw HTML special characters
 function escapeHtml(text: string): string {
@@ -56,7 +60,7 @@ function convertMarkdownToTelegramHtml(markdown: string): string {
 
 // Automatically splits messages exceeding Telegram's 4096-character limit
 async function sendSafeHtmlMessage(ctx: any, htmlText: string) {
-  const CHAR_LIMIT = 3800; // Safe threshold under Telegram's 4096-char limit
+  const CHAR_LIMIT = 3800;
 
   if (htmlText.length <= CHAR_LIMIT) {
     return ctx.reply(htmlText, { parse_mode: 'HTML' });
@@ -67,20 +71,16 @@ async function sendSafeHtmlMessage(ctx: any, htmlText: string) {
   let inPreBlock = false;
 
   for (const line of lines) {
-    // Check if the current line opens or closes a code block
     if (line.includes('<pre>')) inPreBlock = true;
     if (line.includes('</pre>')) inPreBlock = false;
 
-    // Evaluate length constraint (adding safety padding for closing tags)
     if (currentChunk.length + line.length + 20 > CHAR_LIMIT) {
       let sendText = currentChunk;
       if (inPreBlock) {
-        sendText += '</pre>'; // Close open pre block for the first message
+        sendText += '</pre>';
       }
 
       await ctx.reply(sendText, { parse_mode: 'HTML' });
-
-      // Initialize the next chunk, carrying over the <pre> tag if split occurred inside code
       currentChunk = inPreBlock ? '<pre>' : '';
     }
 
@@ -123,8 +123,9 @@ bot.start((ctx) => {
     "👉 /balance - Check your live Bitget Spot wallet\n" +
     "👉 /research <COIN> - Convene the AI Investment Committee (e.g., /research SOL)\n" +
     "👉 /audit - Run the Anti-Liquidator Behavioral Risk Audit\n" +
-    "👉 /strategy <PROMPT> - Compile and backtest a strategy (e.g., /strategy Buy when RSI < 30 on 1h, sell at 4% gain)\n" +
-    "👉 /news - Check market sentiment and FUD/FOMO signals"
+    "👉 /strategy <PROMPT> - Compile and backtest a strategy\n" +
+    "👉 /news - Check market sentiment and FUD/FOMO signals\n" +
+    "👉 /trade <COIN> - Prompt the AI Agent to scan market setups (e.g., /trade SOL)"
   );
 });
 
@@ -232,6 +233,71 @@ bot.command('news', async (ctx) => {
   } catch (error) {
     console.error(error);
     ctx.reply("❌ Failed to compile news audit. Check the AI gateway log.");
+  }
+});
+
+// 7. Autonomous Agent Trading Scan Command
+bot.command('trade', async (ctx) => {
+  const messageText = ctx.message?.text || '';
+  const args = messageText.split(' ');
+  const coin = args[1]?.trim();
+
+  if (!coin) {
+    return ctx.reply("❌ Error: Ticker missing. Format: `/trade SOL` or `/trade BTC`", { parse_mode: 'Markdown' });
+  }
+
+  const coinUpper = coin.toUpperCase();
+  ctx.reply(`🤖 Asiwaju AI Agent is scanning market conditions & reading charts for ${coinUpper}...`);
+
+  try {
+    const proposal = await scanMarketOpportunity(coinUpper);
+    if (!proposal) {
+      return ctx.reply(`⚪ Market ranging. No high-probability setups located for ${coinUpper} at this time.`);
+    }
+
+    // Save the proposal in user chat memory
+    pendingProposals.set(ctx.chat.id, proposal);
+
+    const message = `🎯 **AI Trading Agent Signal Located!** 🎯\n\n` +
+      `• **Asset:** ${proposal.symbol}\n` +
+      `• **Direction:** ${proposal.side.toUpperCase()}\n` +
+      `• **Price:** $${parseFloat(proposal.price).toFixed(2)}\n` +
+      `• **Quantity:** ${proposal.quantity}\n` +
+      `• **Take Profit Target:** $${parseFloat(proposal.takeProfit).toFixed(2)}\n` +
+      `• **Stop Loss Invalidation:** $${parseFloat(proposal.stopLoss).toFixed(2)}\n\n` +
+      `📝 **Justification:** ${proposal.reason}\n\n` +
+      `⚡ **Awaiting Permission:** Reply with /approve to execute this trade on Bitget!`;
+
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
+  } catch (error) {
+    console.error(error);
+    ctx.reply("❌ Failed to complete scan. Check the agentic gateway logs.");
+  }
+});
+
+// 8. Autonomous Agent Trading Execution Command
+bot.command('approve', async (ctx) => {
+  const proposal = pendingProposals.get(ctx.chat.id);
+
+  if (!proposal) {
+    return ctx.reply("❌ Error: No pending trade proposal found. Run `/trade <coin>` first to scan.");
+  }
+
+  ctx.reply(`⚡ Permission granted. Broadcasting signed market order to Bitget Spot V2...`);
+
+  try {
+    const executionResult = await executeApprovedTrade(proposal);
+    const [status, details] = executionResult.split(":");
+
+    if (status === "SUCCESS") {
+      ctx.reply(`🎯 **Trade Executed Live!** 🎯\n\nOrder ID: \`${details}\``, { parse_mode: 'Markdown' });
+      pendingProposals.delete(ctx.chat.id); // Clear proposal memory on success
+    } else {
+      ctx.reply(`❌ Order placement failed: ${details}`);
+    }
+  } catch (error) {
+    console.error(error);
+    ctx.reply("❌ Handshake timeout. Transaction rejected.");
   }
 });
 

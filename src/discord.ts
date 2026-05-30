@@ -1,12 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 import crypto from 'crypto';
 import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
+import { scanMarketOpportunity, executeApprovedTrade, TradeProposal } from './utils/agent';
 
 // Verify Token
 const discordToken = process.env.DISCORD_BOT_TOKEN;
@@ -22,6 +23,9 @@ const client = new Client({
     GatewayIntentBits.MessageContent
   ]
 });
+
+// Localized map to securely hold pending proposals per user guild session
+const pendingProposals = new Map<string, TradeProposal>();
 
 // Helper: Safely splits and sends long Markdown payloads (handles 2000-character limit)
 async function sendDiscordSafeMessage(message: any, text: string) {
@@ -199,6 +203,70 @@ client.on('messageCreate', async (message) => {
     } catch (error) {
       console.error(error);
       message.reply("❌ Failed to compile news audit. Check the AI gateway log.");
+    }
+  }
+
+  // 6. !trade Command (Autonomous Agent Trading Scan)
+  if (content.startsWith('!trade')) {
+    const args = content.split(' ');
+    const coin = args[1]?.trim();
+
+    if (!coin) {
+      return message.reply("❌ Error: Ticker missing. Format: `!trade SOL` or `!trade BTC`");
+    }
+
+    const coinUpper = coin.toUpperCase();
+    message.reply(`🤖 Asiwaju AI Agent is scanning market conditions & reading charts for ${coinUpper}...`);
+
+    try {
+      const proposal = await scanMarketOpportunity(coinUpper);
+      if (!proposal) {
+        return message.reply(`⚪ Market ranging. No high-probability setups located for ${coinUpper} at this time.`);
+      }
+
+      // Save proposal in user guild memory
+      pendingProposals.set(message.author.id, proposal);
+
+      const replyText = `🎯 **AI Trading Agent Signal Located!** 🎯\n\n` +
+        `• **Asset:** ${proposal.symbol}\n` +
+        `• **Direction:** ${proposal.side.toUpperCase()}\n` +
+        `• **Price:** $${parseFloat(proposal.price).toFixed(2)}\n` +
+        `• **Quantity:** ${proposal.quantity}\n` +
+        `• **Take Profit Target:** $${parseFloat(proposal.takeProfit).toFixed(2)}\n` +
+        `• **Stop Loss Invalidation:** $${parseFloat(proposal.stopLoss).toFixed(2)}\n\n` +
+        `• **Justification:** ${proposal.reason}\n\n` +
+        `⚡ **Awaiting Permission:** Reply with \`!approve\` to execute this trade on Bitget!`;
+
+      await sendDiscordSafeMessage(message, replyText);
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Failed to complete scan. Check the agentic gateway logs.");
+    }
+  }
+
+  // 7. !approve Command (Autonomous Agent Trading Execution)
+  if (content === '!approve') {
+    const proposal = pendingProposals.get(message.author.id);
+
+    if (!proposal) {
+      return message.reply("❌ Error: No pending trade proposal found. Run `!trade <coin>` first to scan.");
+    }
+
+    message.reply(`⚡ Permission granted. Broadcasting signed market order to Bitget Spot V2...`);
+
+    try {
+      const executionResult = await executeApprovedTrade(proposal);
+      const [status, details] = executionResult.split(":");
+
+      if (status === "SUCCESS") {
+        message.reply(`🎯 **Trade Executed Live!** 🎯\n\nOrder ID: \`${details}\``);
+        pendingProposals.delete(message.author.id); // Clear proposal memory on success
+      } else {
+        message.reply(`❌ Order placement failed: ${details}`);
+      }
+    } catch (error) {
+      console.error(error);
+      message.reply("❌ Handshake timeout. Transaction rejected.");
     }
   }
 });
