@@ -17,7 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="relative min-h-screen w-full bg-[#030206] overflow-x-hidden antialiased">
         
-        {/* 1. Animated Liquidglass Backdrops (Pointer events disabled) */}
+        {/* 1. Animated Liquidglass Backdrops */}
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
           <div className="absolute -top-[10%] -left-[10%] h-[60vw] w-[60vw] rounded-full bg-violet-900/15 blur-[140px] liquid-blob-1" />
           <div className="absolute -bottom-[10%] -right-[10%] h-[50vw] w-[50vw] rounded-full bg-indigo-900/10 blur-[130px] liquid-blob-2" />
@@ -39,8 +39,8 @@ export default function RootLayout({
         {/* 4. Global Navbar Header */}
         <Navbar />
 
-        {/* 5. Page Content Wrapper */}
-        <main className="relative z-10 mx-auto max-w-7xl px-6 pb-24 pt-4">
+        {/* 5. Page Content Wrapper (Padding top pt-24 offsets the fixed header cleanly) */}
+        <main className="relative z-10 mx-auto max-w-7xl px-6 pb-24 pt-24">
           {children}
         </main>
 

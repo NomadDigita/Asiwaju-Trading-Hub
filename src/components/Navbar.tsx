@@ -4,10 +4,10 @@ import React from "react";
 
 export default function Navbar() {
   return (
-    // Outer wrapper remains strictly anchored to the top of the viewport
-    <header className="sticky top-0 z-50 w-full px-4 md:px-6 py-4 pointer-events-none">
+    // Outer wrapper remains fixed to the top of the viewport under all circumstances
+    <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 md:px-6 py-4 pointer-events-none">
       
-      {/* Inner glass container floats and handles click events independently */}
+      {/* Inner glass container floats independently while remaining locked to the top */}
       <div className="mx-auto max-w-7xl glass-panel rounded-2xl px-4 md:px-6 py-3.5 flex items-center justify-between transition-all duration-500 border border-white/8 float-card-slow pointer-events-auto">
         
         {/* Brand Logo & Name */}
