@@ -14,11 +14,20 @@ export interface TradeProposal {
   reason: string;
 }
 
-// 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel-Bypass Included)
+// 1. Perception Layer: Pull live Spot Ticker price (Binance unblocked fallback included)
 async function getLivePrice(symbol: string): Promise<string> {
-  // If running on Vercel, return realistic active baseline spot prices to prevent geoblock timeouts
+  // If running on Vercel, query Binance's public unblocked API to fetch the actual, real-time price of any token
   if (process.env.VERCEL) {
-    return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "172.50";
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
+      const data = await res.json();
+      if (data && data.price) {
+        return parseFloat(data.price).toString();
+      }
+    } catch (e) {
+      console.warn("⚠️ Public price feed failed. Using baseline parameters.");
+    }
+    return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
   }
 
   const requestPath = `/api/v2/spot/market/tickers?symbol=${symbol}`;

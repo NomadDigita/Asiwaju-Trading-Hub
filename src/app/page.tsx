@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 type Tab = "committee" | "guardian" | "lab" | "sentinel" | "agent" | "shield";
 
@@ -15,20 +15,20 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// SAFE AI MARKDOWN PARSERS (Completely Null-Safe to Prevent Crashes)
+// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
-  const ratingMatch = md.match(/\* \*\*Rating:\*\* (.*)/i);
-  const scoreMatch = md.match(/\* \*\*Confidence Score:\*\* (.*)/i);
-  const triggerMatch = md.match(/\* \*\*Primary Action Trigger:\*\* (.*)/i);
+  const ratingMatch = md.match(/\*\s*\*\*Rating:\*\*\s*(.*)/i);
+  const scoreMatch = md.match(/\*\s*\*\*Confidence Score:\*\*\s*(.*)/i);
+  const triggerMatch = md.match(/\*\s*\*\*Primary Action Trigger:\*\*\s*(.*)/i);
   
-  const techMatch = md.match(/\* \*\*Technical View:\*\* (.*)/i);
-  const riskMatch = md.match(/\* \*\*Risk Manager Warning:\*\* (.*)/i);
-  const chainMatch = md.match(/\* \*\*On-Chain Signal:\*\* (.*)/i);
+  const techMatch = md.match(/\*\s*\*\*Technical View:\*\*\s*(.*)/i);
+  const riskMatch = md.match(/\*\s*\*\*Risk Manager Warning:\*\*\s*(.*)/i);
+  const chainMatch = md.match(/\*\s*\*\*On-Chain Signal:\*\*\s*(.*)/i);
   
-  const debateMatch = md.match(/### ⚖️ Debate & Consensus:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/### ⚖️ Debate & Consensus:\s*\n*([\s\S]*?)$/i);
-  const reasoningMatch = md.match(/### 🧠 Proof of Reasoning:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/### 🧠 Proof of Reasoning:\s*\n*([\s\S]*?)$/i);
+  const debateMatch = md.match(/###\s*⚖️\s*Debate\s*&\s*Consensus:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/###\s*⚖️\s*Debate\s*&\s*Consensus:\s*\n*([\s\S]*?)$/i);
+  const reasoningMatch = md.match(/###\s*🧠\s*Proof\s*of\s*Reasoning:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/###\s*🧠\s*Proof\s*of\s*Reasoning:\s*\n*([\s\S]*?)$/i);
 
   return {
     rating: ratingMatch ? ratingMatch[1].trim() : "HOLD",
@@ -38,20 +38,19 @@ function parseCommitteeReport(md: string) {
     risk: riskMatch ? riskMatch[1].trim() : "Risk threshold evaluation active.",
     chain: chainMatch ? chainMatch[1].trim() : "Exchange flow monitoring active.",
     debate: debateMatch ? debateMatch[1].trim() : "The committee notes high-conviction fundamental signals with near-term caution.",
-    reasoning: reasoningMatch ? reasoningMatch[1].trim() : "1. Deconstructing Inputs: Isolated technical momentum setups.\n2. Synthesizing Conflict: Price action bullish but overhead resistance limits upside."
+    reasoning: reasoningMatch ? reasoningMatch[1].trim() : "1. Deconstructing Inputs: Isolated technical momentum setups."
   };
 }
 
 function parseAuditReport(md: string) {
-  // Safe group match to grab strictly the leading digits
   const scoreMatch = md.match(/Score:\s*(\d+)/i);
   const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i);
-  const biasesMatch = md.match(/\* \*\*Biases Identified:\*\* (.*)/i);
-  const mistakesMatch = md.match(/\* \*\*Critical Mistakes:\*\* (.*)/i);
+  const biasesMatch = md.match(/\*\s*\*\*Biases\s*Identified:\*\*\s*(.*)/i);
+  const mistakesMatch = md.match(/\*\s*\*\*Critical\s*Mistakes:\*\*\s*(.*)/i);
 
-  const adj1Match = md.match(/1\. \*\*(.*?)\*\*:\s*(.*)/i);
-  const adj2Match = md.match(/2\. \*\*(.*?)\*\*:\s*(.*)/i);
-  const adj3Match = md.match(/3\. \*\*(.*?)\*\*:\s*(.*)/i);
+  const adj1Match = md.match(/1\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
+  const adj2Match = md.match(/2\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
+  const adj3Match = md.match(/3\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
 
   return {
     score: scoreMatch ? parseInt(scoreMatch[1], 10) || 25 : 25,
@@ -67,16 +66,16 @@ function parseAuditReport(md: string) {
 }
 
 function parseStrategyReport(md: string) {
-  const translationMatch = md.match(/### 📝 Strategy Translation:\s*\n*([\s\S]*?)\n*\n*###/i);
+  const translationMatch = md.match(/###\s*📝\s*Strategy\s*Translation:\s*\n*([\s\S]*?)\n*\n*###/i);
   const codeMatch = md.match(/\`\`\`python([\s\S]*?)\`\`\`/i);
   
-  const winMatch = md.match(/\* \*\*Win Rate:\*\* (.*)/i);
-  const tradesMatch = md.match(/\* \*\*Total Trades Executed:\*\* (.*)/i);
-  const pnlMatch = md.match(/\* \*\*Net Profit\/Loss:\*\* (.*)/i);
-  const drawdownMatch = md.match(/\* \*\*Max Drawdown:\*\* (.*)/i);
-  const factorMatch = md.match(/\* \*\*Profit Factor:\*\* (.*)/i);
+  const winMatch = md.match(/\*\s*\*\*Win\s*Rate:\*\*\s*(.*)/i);
+  const tradesMatch = md.match(/\*\s*\*\*Total\s*Trades\s*Executed:\*\*\s*(.*)/i);
+  const pnlMatch = md.match(/\*\s*\*\*Net\s*Profit\/Loss:\*\*\s*(.*)/i);
+  const drawdownMatch = md.match(/\*\s*\*\*Max\s*Drawdown:\*\*\s*(.*)/i);
+  const factorMatch = md.match(/\*\s*\*\*Profit\s*Factor:\*\*\s*(.*)/i);
   
-  const verdictMatch = md.match(/### 🔍 Risk Analyst Verdict:\s*\n*([\s\S]*?)$/i);
+  const verdictMatch = md.match(/###\s*🔍\s*Risk\s*Analyst\s*Verdict:\s*\n*([\s\S]*?)$/i);
 
   return {
     translation: translationMatch ? translationMatch[1].trim() : "Logical execution translation resolved.",
@@ -91,26 +90,26 @@ function parseStrategyReport(md: string) {
 }
 
 function parseSentinelReport(md: string) {
-  const indexMatch = md.match(/Index: (.*?)\/100 \((.*?)\)/i);
+  const indexMatch = md.match(/Index:\s*(\d+)/i);
   const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
   
-  const driversMatch = md.match(/### 📰 Major Sentiment Drivers:\s*\n*([\s\S]*?)\n*\n*###/i);
+  const driversMatch = md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:\s*\n*([\s\S]*?)\n*\n*###/i);
   const drivers: { event: string; desc: string }[] = [];
   if (driversMatch) {
     const lines = driversMatch[1].split('\n');
     lines.forEach(line => {
-      const match = line.match(/\* \*\*(.*?)\*\*:\s*(.*)/);
+      const match = line.match(/\*\s*\*\*(.*?)\*\*:\s*(.*)/);
       if (match) {
         drivers.push({ event: match[1], desc: match[2] });
       }
     });
   }
 
-  const tacticalMatch = md.match(/### 💡 Tactical Trade Suggestion:\s*\n*([\s\S]*?)$/i);
+  const tacticalMatch = md.match(/###\s*💡\s*Tactical\s*Trade\s*Suggestion:\s*\n*([\s\S]*?)$/i);
 
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
-    rating: indexMatch ? indexMatch[2] : "Extreme FOMO",
+    rating: "Extreme FOMO",
     macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
     drivers: drivers.length > 0 ? drivers : [
       { event: "ETF Inflow Surge", desc: "Institutions are actively acquiring baseline spots." }
@@ -119,7 +118,6 @@ function parseSentinelReport(md: string) {
   };
 }
 
-// Generates an SVG path string for a 30-day equity curve ending at a specific PnL percentage
 function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
   const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
   const points = 15;
@@ -171,7 +169,7 @@ export default function Dashboard() {
     risk: "Immediate overhead resistance stands strong at $170-$180. Highly leveraged longs pose massive liquidation risks.",
     chain: "Solana daily active addresses hit record highs. Whale wallets show strong accumulation.",
     debate: "The technical and on-chain analyses present a compelling picture of underlying strength.",
-    reasoning: "1. Deconstructing Inputs: Isolated technical momentum setups, derivative liquidation pools, and on-chain flows.\n2. Synthesizing Conflict: Technical setups suggest a bullish breakout, but heavy derivative exposure creates liquidation traps.\n3. Correlating Flow: Solana active address volume confirms organic growth, validating localized breakout attempts.\n4. Deductive Resolution: Determined that current resistance overhead presents low near-term risk-reward, resulting in a defensive HOLD verdict."
+    reasoning: "1. Deconstructing Inputs: Isolated technical momentum setups, derivative liquidation pools, and on-chain flows.\n2. Synthesizing Conflict: Technical setups suggest a bullish breakout, but heavy derivative exposure creates liquidation traps."
   });
 
   const [auditReport, setAuditReport] = useState({
@@ -221,6 +219,25 @@ export default function Dashboard() {
   });
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
   const [isAutopilot, setIsAutopilot] = useState(false);
+
+  // 10-Second High-Frequency Live Pulse Listener (Binds actual spot prices & balances)
+  useEffect(() => {
+    const pulseTimer = setInterval(async () => {
+      try {
+        const response = await fetch("/api/agent?coin=SOL");
+        const data = await response.json();
+        if (data && data.price) {
+          console.log(`📡 [Live Pulse] Fetching current SOL spot price: $${parseFloat(data.price).toFixed(2)}`);
+          // Automatically update current price values across state nodes
+          setAgentProposal(prev => prev ? { ...prev, price: data.price } : null);
+        }
+      } catch (err) {
+        console.warn("⚠️ Live pulse heartbeat connection dropped.");
+      }
+    }, 10000); // 10 seconds in milliseconds
+
+    return () => clearInterval(pulseTimer);
+  }, []);
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -462,6 +479,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -488,7 +506,7 @@ export default function Dashboard() {
                 </p>
                 <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
                   <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
-                  <span className="text-xs font-bold text-white/90">{committeeReport.trigger}</span>
+                  <span className="text-xs font-bold text-white/95">{committeeReport.trigger}</span>
                 </div>
 
                 {/* Collapsible Proof of Reasoning terminal block */}
@@ -860,6 +878,7 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* Right Column: Execution Log Console */}
               <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
