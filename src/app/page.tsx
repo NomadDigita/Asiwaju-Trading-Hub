@@ -15,41 +15,6 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// HELPER: DYNAMIC SVG COORDINATE MAPPER
-// -------------------------------------------------------------
-function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-  const points = 15;
-  const coords: { x: number; y: number }[] = [];
-  let currentVal = 100;
-  const targetVal = 100 + (pnl * 3);
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    if (i === 0) {
-      currentVal = 100;
-    } else if (i === points - 1) {
-      currentVal = targetVal;
-    } else {
-      const progress = i / (points - 1);
-      const expectedVal = 100 + ((targetVal - 100) * progress);
-      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-      currentVal = expectedVal + wave;
-    }
-    const minVal = 70;
-    const maxVal = 135;
-    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-  }
-  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-}
-
-function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-  const linePath = generateSvgPath(pnlPercentStr, width, height);
-  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-}
-
-// -------------------------------------------------------------
 // AI MARKDOWN PARSERS
 // -------------------------------------------------------------
 
@@ -63,6 +28,7 @@ function parseCommitteeReport(md: string) {
   const chainMatch = md.match(/\* \*\*On-Chain Signal:\*\* (.*)/i);
   
   const debateMatch = md.match(/### ⚖️ Debate & Consensus:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/### ⚖️ Debate & Consensus:\s*\n*([\s\S]*?)$/i);
+  const reasoningMatch = md.match(/### 🧠 Proof of Reasoning:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/### 🧠 Proof of Reasoning:\s*\n*([\s\S]*?)$/i);
 
   return {
     rating: ratingMatch ? ratingMatch[1].trim() : "HOLD",
@@ -71,7 +37,8 @@ function parseCommitteeReport(md: string) {
     tech: techMatch ? techMatch[1].trim() : "Technical parameters active.",
     risk: riskMatch ? riskMatch[1].trim() : "Risk threshold evaluation active.",
     chain: chainMatch ? chainMatch[1].trim() : "Exchange flow monitoring active.",
-    debate: debateMatch ? debateMatch[1].trim() : "The committee notes high-conviction fundamental signals with near-term caution."
+    debate: debateMatch ? debateMatch[1].trim() : "The committee notes high-conviction fundamental signals with near-term caution.",
+    reasoning: reasoningMatch ? reasoningMatch[1].trim() : "1. Parsing inputs... Done.\n2. Correlating trend lines... Done.\n3. Resolving consensus metrics."
   };
 }
 
@@ -151,6 +118,39 @@ function parseSentinelReport(md: string) {
   };
 }
 
+// Generates an SVG path string for a 30-day equity curve ending at a specific PnL percentage
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3);
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
+}
+
 // -------------------------------------------------------------
 // MAIN DASHBOARD COMPONENT
 // -------------------------------------------------------------
@@ -169,7 +169,8 @@ export default function Dashboard() {
     tech: "SOL exhibits strong bullish momentum, consolidating above major moving averages.",
     risk: "Immediate overhead resistance stands strong at $170-$180. Highly leveraged longs pose massive liquidation risks.",
     chain: "Solana daily active addresses hit record highs. Whale wallets show strong accumulation.",
-    debate: "The technical and on-chain analyses present a compelling picture of underlying strength."
+    debate: "The technical and on-chain analyses present a compelling picture of underlying strength.",
+    reasoning: "1. Deconstructing Inputs: Isolated technical momentum setups, derivative liquidation pools, and on-chain flows.\n2. Synthesizing Conflict: Technical setups suggest a bullish breakout, but heavy derivative exposure creates liquidation traps.\n3. Correlating Flow: Solana active address volume confirms organic growth, validating localized breakout attempts.\n4. Deductive Resolution: Determined that current resistance overhead presents low near-term risk-reward, resulting in a defensive HOLD verdict."
   });
 
   const [auditReport, setAuditReport] = useState({
@@ -460,6 +461,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -488,6 +490,17 @@ export default function Dashboard() {
                   <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
                   <span className="text-xs font-bold text-white/90">{committeeReport.trigger}</span>
                 </div>
+
+                {/* Collapsible Proof of Reasoning terminal block */}
+                <details className="group p-4 bg-black/60 rounded-xl border border-white/5 cursor-pointer">
+                  <summary className="flex items-center justify-between text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono select-none">
+                    <span>🧠 View Proof of Reasoning (Chain-of-Thought logs)</span>
+                    <span className="transition-transform duration-300 group-open:rotate-180">▼</span>
+                  </summary>
+                  <div className="mt-4 pt-4 border-t border-white/5 font-mono text-[10px] text-cyan-300/80 leading-relaxed space-y-2 whitespace-pre-line select-text">
+                    {committeeReport.reasoning}
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -847,7 +860,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Right Column: Execution Log Console */}
               <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
@@ -866,22 +878,15 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ==============================================================
-           TAB 6: SHIELD SDK (DEVELOPER OBSERVABILITY SANDBOX)
-           ============================================================== */}
+        {/* TAB 6: SHIELD SDK */}
         {activeTab === "shield" && (
           <div className="space-y-6">
-            
-            {/* Top Row: System Topology Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* SDK Status Panel */}
               <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col justify-between h-[280px] float-card-slow">
                 <div>
                   <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Asiwaju Agent Shield</h3>
                   <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Zero-Trust Guardrail SDK</p>
                 </div>
-                
                 <div className="space-y-3.5">
                   <div className="flex items-center gap-3">
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
@@ -896,18 +901,15 @@ export default function Dashboard() {
                     <span className="text-xs font-bold text-cyan-400">🛰️ Key Vault Isolation: ARMED</span>
                   </div>
                 </div>
-
                 <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
                   SDK VERSION: 1.0.0 (STABLE)
                 </div>
               </div>
 
-              {/* Developer Configuration Parameters */}
               <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col justify-between h-[280px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-3 text-glow-cyan">Enforced Safety Guardrail Parameters</h4>
                   <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides [4].</p>
-                  
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="p-3 bg-black/40 rounded-xl border border-white/5">
                       <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Trade Size</span>
@@ -923,13 +925,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-                
                 <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">GUARD_REGISTRY_OUT</span>
               </div>
-
             </div>
 
-            {/* Bottom Row: SDK Integration Instructions */}
             <div className="glass-panel p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan mb-4">AAS SDK Developer Integration Guide</h3>
               <div className="space-y-4">
@@ -947,7 +946,6 @@ const report = await AsiwajuAgentShield.processSecureTrade(userPrompt, tradeRequ
                 </div>
               </div>
             </div>
-
           </div>
         )}
 

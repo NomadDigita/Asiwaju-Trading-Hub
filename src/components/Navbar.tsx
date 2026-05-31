@@ -4,14 +4,20 @@ import React from "react";
 
 export default function Navbar() {
   return (
-    <header className="sticky top-0 z-50 w-full px-4 md:px-6 py-4 float-card-slow">
-      <div className="mx-auto max-w-7xl glass-panel rounded-2xl px-4 md:px-6 py-3 flex items-center justify-between transition-all duration-500 border border-white/8">
+    // Outer wrapper remains strictly anchored to the top of the viewport
+    <header className="sticky top-0 z-50 w-full px-4 md:px-6 py-4 pointer-events-none">
+      
+      {/* Inner glass container floats and handles click events independently */}
+      <div className="mx-auto max-w-7xl glass-panel rounded-2xl px-4 md:px-6 py-3.5 flex items-center justify-between transition-all duration-500 border border-white/8 float-card-slow pointer-events-auto">
         
-        {/* Brand Logo & Name (Adaptive Mobile Text) */}
+        {/* Brand Logo & Name */}
         <div className="flex items-center gap-2 md:gap-3">
-          <div className="relative h-8 w-8 md:h-10 md:w-10 flex items-center justify-center">
+          <div className="relative h-10 w-10 flex items-center justify-center">
+            {/* Pulsing Glow behind Logo */}
             <div className="absolute inset-0 rounded-xl bg-cyan-500/10 blur-md animate-pulse" />
-            <svg className="h-6 w-6 md:h-8 md:w-8 text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" viewBox="0 0 100 100" fill="none">
+            
+            {/* Hexagon Brand SVG */}
+            <svg className="h-8 w-8 text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]" viewBox="0 0 100 100" fill="none">
               <polygon points="50,15 80,32.5 80,67.5 50,85 20,67.5 20,32.5" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
               <polygon points="50,28 69,39 69,61 50,72 31,61 31,39" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="opacity-50" />
               <circle cx="50" cy="50" r="7" fill="currentColor" />
@@ -25,7 +31,7 @@ export default function Navbar() {
           </span>
         </div>
 
-        {/* Messaging Bot Links (Scaled down for mobile screens) */}
+        {/* Messaging Bot Links */}
         <div className="flex items-center gap-2 md:gap-3">
           
           {/* Telegram Bot Link */}
@@ -33,7 +39,7 @@ export default function Navbar() {
             href="https://t.me/AsiwajuTradingBot"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 md:gap-2 rounded-xl bg-white/5 px-3 md:px-4.5 py-2 text-[10px] md:text-xs font-bold text-white border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-[#229ED9]/50 hover:text-white hover:scale-105"
+            className="flex items-center gap-1.5 md:gap-2 rounded-xl bg-white/5 px-3 md:px-4.5 py-2 text-[10px] md:text-xs font-bold text-white border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-[#229ED9]/50 hover:text-white hover:scale-105 hover:shadow-[0_0_15px_rgba(34,158,217,0.2)]"
           >
             <svg
               className="h-3.5 w-3.5 text-[#229ED9]"
@@ -51,7 +57,7 @@ export default function Navbar() {
             href="https://discord.com/oauth2/authorize?client_id=1509519700751810740&permissions=3072&scope=bot"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 md:gap-2 rounded-xl bg-white/5 px-3 md:px-4.5 py-2 text-[10px] md:text-xs font-bold text-white border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-[#5865F2]/50 hover:text-white hover:scale-105"
+            className="flex items-center gap-1.5 md:gap-2 rounded-xl bg-white/5 px-3 md:px-4.5 py-2 text-[10px] md:text-xs font-bold text-white border border-white/5 transition-all duration-300 hover:bg-white/10 hover:border-[#5865F2]/50 hover:text-white hover:scale-105 hover:shadow-[0_0_15px_rgba(88,101,242,0.2)]"
           >
             <svg
               className="h-3.5 w-3.5 text-[#5865F2]"
