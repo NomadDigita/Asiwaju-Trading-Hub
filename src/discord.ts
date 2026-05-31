@@ -16,7 +16,7 @@ if (!discordToken) {
 }
 
 // Initialize Client with necessary privileged intents
-const client = new Client({
+export const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
@@ -29,7 +29,7 @@ const pendingProposals = new Map<string, TradeProposal>();
 let isAutopilotOn = false;
 
 // Helper: Safely splits and sends long Markdown payloads (handles 2000-character limit)
-async function sendDiscordSafeMessage(message: any, text: string) {
+export async function sendDiscordSafeMessage(message: any, text: string) {
   const CHAR_LIMIT = 1900; // Leave buffer margin for formatting
 
   if (text.length <= CHAR_LIMIT) {

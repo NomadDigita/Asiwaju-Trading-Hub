@@ -15,7 +15,7 @@ if (!botToken) {
   throw new Error("❌ Error: TELEGRAM_BOT_TOKEN is missing in .env");
 }
 
-const bot = new Telegraf(botToken);
+export const bot = new Telegraf(botToken);
 
 // Localized maps to securely hold states per user chat session
 const pendingProposals = new Map<number, TradeProposal>();
@@ -30,7 +30,7 @@ function escapeHtml(text: string): string {
 }
 
 // Convert standard Markdown output to safe Telegram HTML
-function convertMarkdownToTelegramHtml(markdown: string): string {
+export function convertMarkdownToTelegramHtml(markdown: string): string {
   const parts = markdown.split(/(\`\`\`[\s\S]*?\`\`\`)/g);
 
   for (let i = 0; i < parts.length; i++) {
@@ -60,7 +60,7 @@ function convertMarkdownToTelegramHtml(markdown: string): string {
 }
 
 // Automatically splits messages exceeding Telegram's 4096-character limit
-async function sendSafeHtmlMessage(ctx: any, htmlText: string) {
+export async function sendSafeHtmlMessage(ctx: any, htmlText: string) {
   const CHAR_LIMIT = 3800;
 
   if (htmlText.length <= CHAR_LIMIT) {
