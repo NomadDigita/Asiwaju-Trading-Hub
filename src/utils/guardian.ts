@@ -12,7 +12,7 @@ interface TradeLog {
   notes?: string;
 }
 
-// Simulated emotional trade log to demonstrate system audit logic on empty wallets
+// Simulated emotional trade log to demonstrate system audit logic on empty wallets or geoblocks
 const MOCK_EMOTIONAL_LOG: TradeLog[] = [
   { timestamp: "1780000000000", symbol: "SOLUSDT", side: "buy", price: "188.50", size: "15", notes: "Bought at local peak after a massive green hourly candle (FOMO)" },
   { timestamp: "1780003600000", symbol: "SOLUSDT", side: "sell", price: "171.20", size: "15", notes: "Panic sold at a major loss during a temporary drop" },
@@ -46,36 +46,43 @@ export async function runBehavioralAudit(): Promise<string> {
   let trades: TradeLog[] = [];
   let isDemoMode = false;
 
-  const requestPath = '/api/v2/spot/trade/history-orders';
-  const headers = getBitgetHeaders('GET', requestPath);
+  // Automatically bypass the US-blocked Bitget API if running in Vercel Serverless
+  if (process.env.VERCEL) {
+    console.log("🛰️ [Guardian] Vercel environment detected. Bypassing geoblocked handshake.");
+    trades = MOCK_EMOTIONAL_LOG;
+    isDemoMode = true;
+  } else {
+    const requestPath = '/api/v2/spot/trade/history-orders';
+    const headers = getBitgetHeaders('GET', requestPath);
 
-  try {
-    // Attempt to pull real historical orders from Bitget
-    const response = await fetch('https://api.bitget.com' + requestPath + '?limit=10', {
-      method: 'GET',
-      headers: headers
-    });
+    try {
+      // Attempt to pull real historical orders from Bitget with a strict 2-second timeout
+      const response = await fetch('https://api.bitget.com' + requestPath + '?limit=10', {
+        method: 'GET',
+        headers: headers,
+        signal: AbortSignal.timeout(2000)
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (result.code === '00000' && Array.isArray(result.data) && result.data.length > 0) {
-      trades = result.data.map((order: any) => ({
-        timestamp: order.cTime,
-        symbol: order.symbol,
-        side: order.side,
-        price: order.price,
-        size: order.size,
-        notes: `Order status: ${order.status}`
-      }));
-    } else {
-      // If the API call fails or returns empty, engage Demo Mode for evaluation
+      if (result.code === '00000' && Array.isArray(result.data) && result.data.length > 0) {
+        trades = result.data.map((order: any) => ({
+          timestamp: order.cTime,
+          symbol: order.symbol,
+          side: order.side,
+          price: order.price,
+          size: order.size,
+          notes: `Order status: ${order.status}`
+        }));
+      } else {
+        trades = MOCK_EMOTIONAL_LOG;
+        isDemoMode = true;
+      }
+    } catch (error) {
+      console.warn("⚠️ Bitget API connection timed out. Falling back to Demo Audit Mode.");
       trades = MOCK_EMOTIONAL_LOG;
       isDemoMode = true;
     }
-  } catch (error) {
-    console.warn("⚠️ Bitget API connection timed out. Falling back to Demo Audit Mode.");
-    trades = MOCK_EMOTIONAL_LOG;
-    isDemoMode = true;
   }
 
   // Orchestrate the Behavioral Risk Audit via MuleRun
@@ -132,15 +139,4 @@ export async function runBehavioralAudit(): Promise<string> {
     console.error("Error in behavioral audit loop:", error);
     throw error;
   }
-}
-
-// Self-executing CLI test block
-if (require.main === module) {
-  runBehavioralAudit()
-    .then((report) => {
-      console.log("\n=================================");
-      console.log(report);
-      console.log("=================================\n");
-    })
-    .catch((err) => console.error(err));
 }
