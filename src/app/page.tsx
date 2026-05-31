@@ -15,7 +15,7 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Null-Safe & Spacing-Resilient)
+// AI MARKDOWN PARSERS (Completely Null-Safe, Spacing & Emoji Resilient)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
@@ -94,13 +94,13 @@ function parseSentinelReport(md: string) {
   const ratingMatch = md.match(/Index:\s*\d+\/100\s*\((.*?)\)/i);
   const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
   
-  // Extract major drivers dynamically using an iterative global scanner
+  // Extract major drivers dynamically (Emoji-Free Parser)
   const drivers: { event: string; desc: string }[] = [];
   const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
   let match;
   
-  // Isolate scanner exclusively to the Drivers markdown section
-  const driversSection = md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
+  // Isolate scanner exclusively to the Drivers section bypassing any emoji strings
+  const driversSection = md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
   
   if (driversSection) {
     while ((match = driverPattern.exec(driversSection[1])) !== null) {
@@ -113,11 +113,11 @@ function parseSentinelReport(md: string) {
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
     rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
-    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
+    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving active market sentiment.",
     drivers: drivers.length > 0 ? drivers : [
-      { event: "ETF Inflow Surge", desc: "Institutions are actively acquiring baseline spots." }
+      { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
     ],
-    tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
+    tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly and use trailing stops."
   };
 }
 
@@ -481,6 +481,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
