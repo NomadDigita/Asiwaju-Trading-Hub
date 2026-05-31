@@ -15,7 +15,7 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
+// AI MARKDOWN PARSERS (Completely Null-Safe & Spacing-Resilient)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
@@ -91,25 +91,28 @@ function parseStrategyReport(md: string) {
 
 function parseSentinelReport(md: string) {
   const indexMatch = md.match(/Index:\s*(\d+)/i);
+  const ratingMatch = md.match(/Index:\s*\d+\/100\s*\((.*?)\)/i);
   const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
   
-  const driversMatch = md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:\s*\n*([\s\S]*?)\n*\n*###/i);
+  // Extract major drivers dynamically using an iterative global scanner
   const drivers: { event: string; desc: string }[] = [];
-  if (driversMatch) {
-    const lines = driversMatch[1].split('\n');
-    lines.forEach(line => {
-      const match = line.match(/\*\s*\*\*(.*?)\*\*:\s*(.*)/);
-      if (match) {
-        drivers.push({ event: match[1], desc: match[2] });
-      }
-    });
+  const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
+  let match;
+  
+  // Isolate scanner exclusively to the Drivers markdown section
+  const driversSection = md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/###\s*📰\s*Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
+  
+  if (driversSection) {
+    while ((match = driverPattern.exec(driversSection[1])) !== null) {
+      drivers.push({ event: match[1].trim(), desc: match[2].trim() });
+    }
   }
 
   const tacticalMatch = md.match(/###\s*💡\s*Tactical\s*Trade\s*Suggestion:\s*\n*([\s\S]*?)$/i);
 
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
-    rating: "Extreme FOMO",
+    rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
     macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
     drivers: drivers.length > 0 ? drivers : [
       { event: "ETF Inflow Surge", desc: "Institutions are actively acquiring baseline spots." }
@@ -220,7 +223,7 @@ export default function Dashboard() {
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
   const [isAutopilot, setIsAutopilot] = useState(false);
 
-  // 10-Second High-Frequency Live Pulse Listener (Binds actual spot prices & balances)
+  // 10-Second High-Frequency Live Pulse Listener
   useEffect(() => {
     const pulseTimer = setInterval(async () => {
       try {
@@ -228,13 +231,12 @@ export default function Dashboard() {
         const data = await response.json();
         if (data && data.price) {
           console.log(`📡 [Live Pulse] Fetching current SOL spot price: $${parseFloat(data.price).toFixed(2)}`);
-          // Automatically update current price values across state nodes
           setAgentProposal(prev => prev ? { ...prev, price: data.price } : null);
         }
       } catch (err) {
         console.warn("⚠️ Live pulse heartbeat connection dropped.");
       }
-    }, 10000); // 10 seconds in milliseconds
+    }, 10000);
 
     return () => clearInterval(pulseTimer);
   }, []);
@@ -479,7 +481,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -506,7 +507,7 @@ export default function Dashboard() {
                 </p>
                 <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
                   <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
-                  <span className="text-xs font-bold text-white/95">{committeeReport.trigger}</span>
+                  <span className="text-xs font-bold text-white/90">{committeeReport.trigger}</span>
                 </div>
 
                 {/* Collapsible Proof of Reasoning terminal block */}
