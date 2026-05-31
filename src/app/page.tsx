@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-type Tab = "committee" | "guardian" | "lab" | "sentinel" | "agent";
+type Tab = "committee" | "guardian" | "lab" | "sentinel" | "agent" | "shield";
 
 interface TradeProposal {
   symbol: string;
@@ -12,6 +12,41 @@ interface TradeProposal {
   stopLoss: string;
   takeProfit: string;
   reason: string;
+}
+
+// -------------------------------------------------------------
+// HELPER: DYNAMIC SVG COORDINATE MAPPER
+// -------------------------------------------------------------
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3);
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
 }
 
 // -------------------------------------------------------------
@@ -116,39 +151,6 @@ function parseSentinelReport(md: string) {
   };
 }
 
-// Generates an SVG path string for a 30-day equity curve ending at a specific PnL percentage
-function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-  const points = 15;
-  const coords: { x: number; y: number }[] = [];
-  let currentVal = 100;
-  const targetVal = 100 + (pnl * 3);
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    if (i === 0) {
-      currentVal = 100;
-    } else if (i === points - 1) {
-      currentVal = targetVal;
-    } else {
-      const progress = i / (points - 1);
-      const expectedVal = 100 + ((targetVal - 100) * progress);
-      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-      currentVal = expectedVal + wave;
-    }
-    const minVal = 70;
-    const maxVal = 135;
-    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-  }
-  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-}
-
-function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-  const linePath = generateSvgPath(pnlPercentStr, width, height);
-  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-}
-
 // -------------------------------------------------------------
 // MAIN DASHBOARD COMPONENT
 // -------------------------------------------------------------
@@ -210,7 +212,7 @@ export default function Dashboard() {
     symbol: "SOLUSDT",
     side: "buy",
     price: "172.50",
-    quantity: "0.028",
+    quantity: "5.0000",
     stopLoss: "168.18",
     takeProfit: "181.12",
     reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
@@ -364,7 +366,6 @@ export default function Dashboard() {
           );
           setAgentProposal(null);
         } else {
-          // If aborted by AI (e.g. "NO_SETUP")
           setExecutionMessage(`🤖 [Autopilot] Scan complete. Safety abort status: ${data.message}`);
         }
       } catch (err) {
@@ -387,7 +388,8 @@ export default function Dashboard() {
             { id: "guardian", label: "🛡️ Guardian" },
             { id: "lab", label: "🧪 Strategy Lab" },
             { id: "sentinel", label: "📡 Sentinel" },
-            { id: "agent", label: "🤖 AI Agent" }
+            { id: "agent", label: "🤖 AI Agent" },
+            { id: "shield", label: "🛡️ Shield SDK" }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -729,8 +731,7 @@ export default function Dashboard() {
 
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
-          <div className="space-y-6 animate-fade-in-up">
-            {/* Control Bar - [White Frosted Highlight Glass] */}
+          <div className="space-y-6">
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
@@ -753,7 +754,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Display Results */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {agentProposal ? (
                 <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-slow">
@@ -863,6 +863,91 @@ export default function Dashboard() {
               </div>
 
             </div>
+          </div>
+        )}
+
+        {/* ==============================================================
+           TAB 6: SHIELD SDK (DEVELOPER OBSERVABILITY SANDBOX)
+           ============================================================== */}
+        {activeTab === "shield" && (
+          <div className="space-y-6">
+            
+            {/* Top Row: System Topology Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* SDK Status Panel */}
+              <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col justify-between h-[280px] float-card-slow">
+                <div>
+                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Asiwaju Agent Shield</h3>
+                  <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Zero-Trust Guardrail SDK</p>
+                </div>
+                
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-xs font-bold text-emerald-400">🛡️ AI Firewall: ACTIVE</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                    <span className="text-xs font-bold text-emerald-400">🔒 Code Guardrails: ENFORCED</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
+                    <span className="text-xs font-bold text-cyan-400">🛰️ Key Vault Isolation: ARMED</span>
+                  </div>
+                </div>
+
+                <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
+                  SDK VERSION: 1.0.0 (STABLE)
+                </div>
+              </div>
+
+              {/* Developer Configuration Parameters */}
+              <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col justify-between h-[280px] float-card-medium" style={{ animationDelay: '0.5s' }}>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-3 text-glow-cyan">Enforced Safety Guardrail Parameters</h4>
+                  <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides [4].</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Trade Size</span>
+                      <div className="text-xs font-extrabold text-rose-400 mt-1">$10.00 USD Max [4]</div>
+                    </div>
+                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Approved Assets</span>
+                      <div className="text-[10px] font-bold text-cyan-400 mt-1">BTC, SOL, ETH [4]</div>
+                    </div>
+                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Rate-Limit Cooldown</span>
+                      <div className="text-xs font-extrabold text-amber-400 mt-1">30 Seconds [4]</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">GUARD_REGISTRY_OUT</span>
+              </div>
+
+            </div>
+
+            {/* Bottom Row: SDK Integration Instructions */}
+            <div className="glass-panel p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
+              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan mb-4">AAS SDK Developer Integration Guide</h3>
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-white/90 leading-relaxed">
+                  The **Asiwaju Agent Shield (AAS) SDK** is designed for low-friction developer onboarding [4]. Any developer building autonomous trading agents on Bitget can protect their keys and prevent prompt injections by importing the SDK into their main event loop [4].
+                </p>
+                <div className="bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 leading-relaxed border border-white/5 overflow-x-auto">
+                  <pre>
+{`import { AsiwajuAgentShield } from './infra/ShieldSDK';
+import { TradeRequest } from './infra/RiskGuardrail';
+
+// Intercept your agent's transaction payloads securely
+const report = await AsiwajuAgentShield.processSecureTrade(userPrompt, tradeRequest);`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 

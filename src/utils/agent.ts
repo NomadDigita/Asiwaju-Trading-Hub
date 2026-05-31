@@ -95,9 +95,13 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
     const proposal: any = JSON.parse(resultText);
 
-    // PROGRAMMATIC QUANTITY CALCULATION (Prevents empty or malformed parameters)
-    const quantityNum = 5 / priceNum; // Allocate exactly $5 USD per transaction
-    proposal.quantity = quantityNum.toFixed(4); // Format to 4 decimal places
+    // BITGET V2 SPECIFIC SIZE ALLOCATION (USDT for buys, coin amount for sells)
+    if (proposal.side === "buy") {
+      proposal.quantity = "5.0000"; // Market Buy size represents Quote Coin (USDT)
+    } else {
+      const quantityNum = 5 / priceNum; // Market Sell size represents Base Coin (SOL/BTC)
+      proposal.quantity = quantityNum.toFixed(4);
+    }
 
     return proposal as TradeProposal;
   } catch (error) {
@@ -110,13 +114,12 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 export async function executeApprovedTrade(proposal: TradeProposal): Promise<string> {
   const requestPath = '/api/v2/spot/trade/place-order';
   
-  // Construct precise market order body
+  // Construct precise market order body using the correct parameter 'size'
   const body = JSON.stringify({
     symbol: proposal.symbol,
     side: proposal.side, // 'buy' or 'sell'
     orderType: 'market',
-    force: 'gtc',
-    quantity: proposal.quantity, // Quantity of coin to trade
+    size: proposal.quantity, // Correct V2 parameter name 'size' mapped here
     clientOid: `asiwaju_${Date.now()}` // Unique client ID
   });
 
@@ -146,7 +149,7 @@ export async function executeApprovedTrade(proposal: TradeProposal): Promise<str
 
 // 4. Autonomous Autopilot Layer: Scans, Analyzes, and Directly Executes
 export async function runAutopilotExecution(specificCoin?: string): Promise<string> {
-  // If no specific coin is provided, the agent automatically scans your core whitelist sequentially
+  // If no specific coin is provided, the agent automatically scans your whitelist sequentially
   const coinsToScan = specificCoin ? [specificCoin.toUpperCase()] : ['BTC', 'SOL', 'ETH'];
   console.log(`🤖 [Autopilot] Commencing autonomous scan loop for: ${coinsToScan.join(', ')}...`);
   
@@ -159,7 +162,7 @@ export async function runAutopilotExecution(specificCoin?: string): Promise<stri
       }
 
       // Set autonomous safety parameters
-      const confidenceScore = 9; // High-conviction score simulated by the scanning parameters
+      const confidenceScore = 9; // High-conviction score simulated by scanning parameters
       const MIN_CONFIDENCE_REQUIRED = 8;
 
       if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {
