@@ -15,42 +15,7 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// HELPER: DYNAMIC SVG COORDINATE MAPPER
-// -------------------------------------------------------------
-function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-  const points = 15;
-  const coords: { x: number; y: number }[] = [];
-  let currentVal = 100;
-  const targetVal = 100 + (pnl * 3);
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    if (i === 0) {
-      currentVal = 100;
-    } else if (i === points - 1) {
-      currentVal = targetVal;
-    } else {
-      const progress = i / (points - 1);
-      const expectedVal = 100 + ((targetVal - 100) * progress);
-      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-      currentVal = expectedVal + wave;
-    }
-    const minVal = 70;
-    const maxVal = 135;
-    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-  }
-  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-}
-
-function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-  const linePath = generateSvgPath(pnlPercentStr, width, height);
-  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-}
-
-// -------------------------------------------------------------
-// AI MARKDOWN PARSERS
+// SAFE AI MARKDOWN PARSERS (Completely Null-Safe to Prevent Crashes)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
@@ -78,7 +43,7 @@ function parseCommitteeReport(md: string) {
 }
 
 function parseAuditReport(md: string) {
-  // Explicitly extract ONLY the digit characters immediately following "Score:" to prevent denominator merges
+  // Safe group match to grab strictly the leading digits
   const scoreMatch = md.match(/Score:\s*(\d+)/i);
   const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i);
   const biasesMatch = md.match(/\* \*\*Biases Identified:\*\* (.*)/i);
@@ -90,7 +55,7 @@ function parseAuditReport(md: string) {
 
   return {
     score: scoreMatch ? parseInt(scoreMatch[1], 10) || 25 : 25,
-    evaluation: evaluationMatch ? evaluationMatch[1].trim() : "Trading patterns analysis concluded.",
+    evaluation: evaluationMatch ? evaluationMatch[1].trim() : "Trading patterns analysis concluded successfully.",
     biases: biasesMatch ? biasesMatch[1].split(',').map(s => s.trim()) : ["FOMO", "Revenge Trading"],
     criticalMistake: mistakesMatch ? mistakesMatch[1].trim() : "Behavioral execution limits exceeded on drawdown.",
     adjustments: [
@@ -152,6 +117,39 @@ function parseSentinelReport(md: string) {
     ],
     tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
   };
+}
+
+// Generates an SVG path string for a 30-day equity curve ending at a specific PnL percentage
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3);
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
 }
 
 // -------------------------------------------------------------
