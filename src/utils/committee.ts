@@ -57,9 +57,9 @@ export async function runInvestmentCommittee(coin: string): Promise<string> {
       askAnalyst("On-Chain Analyst", chainPrompt, coinUpper)
     ]);
 
-    console.log(`📊 Reports received from all three analysts. Convening the Chairman to resolve the consensus...`);
+    console.log(`📊 Reports received. Convening the Chairman to resolve consensus & output Proof of Reasoning...`);
 
-    // The Chairman reads all three arguments and forms a final decision
+    // The Chairman reads all arguments, logs its step-by-step reasoning steps, and outputs a consensus
     const chairmanPrompt = `You are the Chairman of the Asiwaju AI Investment Committee. 
     You will be provided with three specialized analysis reports (Technical, Risk, and On-Chain) for ${coinUpper}.
     Your objective is to weigh all three arguments, resolve any contradictions, and output a highly structured decision.
@@ -72,6 +72,12 @@ export async function runInvestmentCommittee(coin: string): Promise<string> {
     * **Technical View:** [Summarize tech analyst in 2 sentences]
     * **Risk Manager Warning:** [Summarize risk manager warning in 2 sentences]
     * **On-Chain Signal:** [Summarize on-chain analyst in 2 sentences]
+    
+    ### 🧠 Proof of Reasoning:
+    1. **Deconstructing Inputs:** [Detail how you isolated the key themes of the analyst reports in 1 sentence]
+    2. **Synthesizing Conflict:** [Explain the exact logical clash between the Technical momentum and the Risk Manager resistance levels in 1 sentence]
+    3. **Correlating On-Chain Flow:** [Explain how exchange stablecoin/token outflows validate or invalidate the price action in 1 sentence]
+    4. **Deductive Resolution:** [Detail the specific strategic deduction steps that led you to the final Verdict and Primary Action Trigger in 1-2 sentences]
     
     ### ⚖️ Debate & Consensus:
     [Explain how the technical setups clash with or align with the risks and on-chain movements in a paragraph]
@@ -119,7 +125,7 @@ export async function runInvestmentCommittee(coin: string): Promise<string> {
   }
 }
 
-// Self-executing CLI test block if run directly
+// Self-executing CLI test block
 if (require.main === module) {
   runInvestmentCommittee("SOL")
     .then((report) => {
