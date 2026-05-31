@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateStrategyAndBacktest } from "@/utils/lab";
+import { runBehavioralAudit } from "@/utils/guardian";
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const { prompt } = await request.json();
-    if (!prompt) {
-      return NextResponse.json({ error: "Strategy prompt is required." }, { status: 400 });
-    }
-
-    const report = await generateStrategyAndBacktest(prompt);
+    // Calls the live guardian utility which executes a real-time AI analysis via MuleRun
+    const report = await runBehavioralAudit();
     return NextResponse.json({ report });
   } catch (error: any) {
-    console.error("API Error in Strategy Route:", error);
-    return NextResponse.json({ error: error.message || "Failed to compile strategy." }, { status: 500 });
+    console.error("API Error in Audit Route:", error);
+    return NextResponse.json({ error: error.message || "Failed to compile audit." }, { status: 500 });
   }
 }
