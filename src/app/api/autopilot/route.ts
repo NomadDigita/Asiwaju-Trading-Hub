@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runAutopilotExecution } from "@/utils/agent";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const { coin } = await request.json();
     if (!coin) {
@@ -10,7 +10,6 @@ export async function POST(request: Request) {
 
     console.log(`🤖 [API] Triggering Autopilot Execution loop for ${coin}...`);
     
-    // Execute the autonomous trading agent loop
     const result = await runAutopilotExecution(coin);
     const [status, symbol, side, price, details] = result.split(":");
 
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         status: "ABORTED",
-        message: result // Returns the safety abort reason (e.g., "NO_SETUP" or "BLOCKED")
+        message: result
       });
     }
   } catch (error: any) {

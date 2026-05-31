@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { scanMarketOpportunity, TradeProposal } from "@/utils/agent";
 import { AsiwajuAgentShield } from "@/infra/ShieldSDK";
 import { TradeRequest } from "@/infra/RiskGuardrail";
 
-// GET: Scans for active trade setups via Qwen/MuleRun
-export async function GET(request: Request) {
+export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const coin = searchParams.get("coin") || "SOL";
 
@@ -20,15 +19,13 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Runs the trade proposal through our Shield SDK before executing on Bitget
-export async function POST(request: Request) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const proposal: TradeProposal = await request.json();
     if (!proposal || !proposal.symbol || !proposal.quantity) {
       return NextResponse.json({ error: "Invalid trade proposal payload." }, { status: 400 });
     }
 
-    // Map proposal to the structured TradeRequest expected by the Shield SDK
     const tradeRequest: TradeRequest = {
       symbol: proposal.symbol,
       side: proposal.side,
@@ -36,7 +33,6 @@ export async function POST(request: Request) {
       quantity: parseFloat(proposal.quantity)
     };
 
-    // Execute the complete defensive pipeline using our custom SDK
     const shieldReport = await AsiwajuAgentShield.processSecureTrade(
       `Execute approved trade proposal for ${proposal.symbol} at market price.`, 
       tradeRequest

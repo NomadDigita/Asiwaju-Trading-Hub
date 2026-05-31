@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runNewsAudit } from "@/utils/sentinel";
 
-export async function POST() {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
-    // Execute our FUD/FOMO analyst
     const report = await runNewsAudit();
     return NextResponse.json({ report });
   } catch (error: any) {
