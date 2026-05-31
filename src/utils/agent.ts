@@ -23,9 +23,7 @@ async function getLivePrice(symbol: string): Promise<string> {
 
   const requestPath = `/api/v2/spot/market/tickers?symbol=${symbol}`;
   try {
-    const response = await fetch('https://api.bitget.com' + requestPath, {
-      signal: AbortSignal.timeout(2000)
-    });
+    const response = await fetch('https://api.bitget.com' + requestPath);
     const result = await response.json();
     if (result.code === '00000' && Array.isArray(result.data) && result.data[0]) {
       return result.data[0].lastPr; // Returns latest transaction price
@@ -61,7 +59,7 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   if (!apiKey) throw new Error("MULERUN_API_KEY is missing from environment variables.");
 
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
-  Your job is to evaluate current market data, price points, and Sentinel sentiment digests, 
+  Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
   and determine if a high-probability trading opportunity exists.
   
   If an opportunity is found, you MUST return a valid JSON object matching this structure (and absolutely no other text, conversational wrapper, or markdown syntax):

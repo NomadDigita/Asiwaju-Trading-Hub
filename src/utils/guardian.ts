@@ -56,11 +56,10 @@ export async function runBehavioralAudit(): Promise<string> {
     const headers = getBitgetHeaders('GET', requestPath);
 
     try {
-      // Attempt to pull real historical orders from Bitget with a strict 2-second timeout
+      // Attempt to pull real historical orders from Bitget
       const response = await fetch('https://api.bitget.com' + requestPath + '?limit=10', {
         method: 'GET',
-        headers: headers,
-        signal: AbortSignal.timeout(2000)
+        headers: headers
       });
 
       const result = await response.json();
