@@ -305,12 +305,16 @@ bot.command('approve', async (ctx) => {
 
 // 9. Autonomous Autopilot Trading Toggle Command
 bot.command('autopilot', async (ctx) => {
+  const messageText = ctx.message?.text || '';
+  const args = messageText.split(' ');
+  const coin = args[1]?.trim(); // Optional coin parameter
+
   isAutopilotOn = !isAutopilotOn;
 
   if (isAutopilotOn) {
-    ctx.reply("🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on SOL...");
+    ctx.reply(`🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on ${coin ? coin.toUpperCase() : 'Core Portfolio Whitelist (BTC, SOL, ETH)'}...`);
     try {
-      const result = await runAutopilotExecution("SOL");
+      const result = await runAutopilotExecution(coin);
       const [status, symbol, side, price, details] = result.split(":");
 
       if (status === "EXECUTED") {

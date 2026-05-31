@@ -235,7 +235,7 @@ client.on('messageCreate', async (message) => {
         `• **Quantity:** ${proposal.quantity}\n` +
         `• **Take Profit Target:** $${parseFloat(proposal.takeProfit).toFixed(2)}\n` +
         `• **Stop Loss Invalidation:** $${parseFloat(proposal.stopLoss).toFixed(2)}\n\n` +
-        `📝 **Justification:** ${proposal.reason}\n\n` +
+        `• **Justification:** ${proposal.reason}\n\n` +
         `⚡ **Awaiting Permission:** Reply with \`!approve\` to execute this trade on Bitget!`;
 
       await sendDiscordSafeMessage(message, replyText);
@@ -272,13 +272,16 @@ client.on('messageCreate', async (message) => {
   }
 
   // 8. !autopilot Command (Autonomous Autopilot Trading Toggle)
-  if (content === '!autopilot') {
+  if (content.startsWith('!autopilot')) {
+    const args = content.split(' ');
+    const coin = args[1]?.trim(); // Optional coin parameter
+
     isAutopilotOn = !isAutopilotOn;
 
     if (isAutopilotOn) {
-      message.reply("🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on SOL...");
+      message.reply(`🤖 [Autopilot] Mode ENGAGED. Commencing active market monitoring on ${coin ? coin.toUpperCase() : 'Core Portfolio Whitelist (BTC, SOL, ETH)'}...`);
       try {
-        const result = await runAutopilotExecution("SOL");
+        const result = await runAutopilotExecution(coin);
         const [status, symbol, side, price, details] = result.split(":");
 
         if (status === "EXECUTED") {

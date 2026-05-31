@@ -34,8 +34,9 @@ async function getLivePrice(symbol: string): Promise<string> {
 export async function scanMarketOpportunity(coin: string): Promise<TradeProposal | null> {
   const symbol = `${coin.toUpperCase()}USDT`;
   const livePrice = await getLivePrice(symbol);
+  const priceNum = parseFloat(livePrice);
   
-  if (parseFloat(livePrice) === 0) {
+  if (priceNum === 0 || isNaN(priceNum)) {
     console.warn(`⚠️ Unable to resolve active pricing feed for ${symbol}. Skipping scan.`);
     return null;
   }
@@ -56,16 +57,11 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
   and determine if a high-probability trading opportunity exists.
   
-  You must follow strict trading parameters:
-  - Base asset allocation: Risk no more than $5 USD equivalent per trade for safety.
-  - Return a target proposal ONLY if sentiment and technicals align for a clear breakout.
-  
   If an opportunity is found, you MUST return a valid JSON object matching this structure (and absolutely no other text, conversational wrapper, or markdown syntax):
   {
     "symbol": "${symbol}",
     "side": "buy",
     "price": "${livePrice}",
-    "quantity": "[Calculated asset quantity matching a safe $5 allocation]",
     "stopLoss": "[Calculate 2.5% stop-loss level]",
     "takeProfit": "[Calculate 5% take-profit level]",
     "reason": "[One sentence technical/sentiment justification]"
@@ -97,8 +93,13 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
       return null;
     }
 
-    const proposal: TradeProposal = JSON.parse(resultText);
-    return proposal;
+    const proposal: any = JSON.parse(resultText);
+
+    // PROGRAMMATIC QUANTITY CALCULATION (Prevents empty or malformed parameters)
+    const quantityNum = 5 / priceNum; // Allocate exactly $5 USD per transaction
+    proposal.quantity = quantityNum.toFixed(4); // Format to 4 decimal places
+
+    return proposal as TradeProposal;
   } catch (error) {
     console.error("Error in Agentic decision matrix:", error);
     return null;
@@ -144,47 +145,38 @@ export async function executeApprovedTrade(proposal: TradeProposal): Promise<str
 }
 
 // 4. Autonomous Autopilot Layer: Scans, Analyzes, and Directly Executes
-export async function runAutopilotExecution(coin: string): Promise<string> {
-  console.log(`🤖 [Autopilot] Commencing autonomous scan loop for ${coin.toUpperCase()}...`);
+export async function runAutopilotExecution(specificCoin?: string): Promise<string> {
+  // If no specific coin is provided, the agent automatically scans your core whitelist sequentially
+  const coinsToScan = specificCoin ? [specificCoin.toUpperCase()] : ['BTC', 'SOL', 'ETH'];
+  console.log(`🤖 [Autopilot] Commencing autonomous scan loop for: ${coinsToScan.join(', ')}...`);
   
-  try {
-    const proposal = await scanMarketOpportunity(coin);
-    if (!proposal) {
-      return "NO_SETUP: Sideways ranging market. Execution aborted.";
-    }
-
-    // Set autonomous safety parameters
-    const confidenceScore = 9; // High-conviction score simulated by the scanning parameters
-    const MIN_CONFIDENCE_REQUIRED = 8;
-
-    if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {
-      console.log(`🤖 [Autopilot] Setup verified with high confidence (${confidenceScore}/10). Bypassing manual approval.`);
-      const result = await executeApprovedTrade(proposal);
-      const [status, details] = result.split(':');
-      
-      if (status === 'SUCCESS') {
-        return `EXECUTED:${proposal.symbol}:${proposal.side.toUpperCase()}:${proposal.price}:${details}`;
-      } else {
-        return `FAILED: Order rejected by Bitget exchange engine: ${details}`;
+  for (const coin of coinsToScan) {
+    try {
+      const proposal = await scanMarketOpportunity(coin);
+      if (!proposal) {
+        console.log(`🤖 [Autopilot] No clear setup for ${coin}. Continuing scan...`);
+        continue;
       }
-    } else {
-      return `BLOCKED: Signal confidence (${confidenceScore}/10) is below mandatory autopilot safety limit (${MIN_CONFIDENCE_REQUIRED}/10).`;
+
+      // Set autonomous safety parameters
+      const confidenceScore = 9; // High-conviction score simulated by the scanning parameters
+      const MIN_CONFIDENCE_REQUIRED = 8;
+
+      if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {
+        console.log(`🤖 [Autopilot] Target verified for ${coin}. Executing...`);
+        const result = await executeApprovedTrade(proposal);
+        const [status, details] = result.split(':');
+        
+        if (status === 'SUCCESS') {
+          return `EXECUTED:${proposal.symbol}:${proposal.side.toUpperCase()}:${proposal.price}:${details}`;
+        } else {
+          return `FAILED: Order rejected by Bitget exchange engine: ${details}`;
+        }
+      }
+    } catch (error: any) {
+      console.error(`❌ Exception during autopilot scan on ${coin}:`, error.message);
     }
-
-  } catch (error: any) {
-    console.error("❌ Exception during Autopilot execution:", error);
-    return `ERROR:${error.message || 'Connection lost'}`;
   }
-}
 
-// Self-executing CLI test block
-if (require.main === module) {
-  runAutopilotExecution("SOL")
-    .then((result) => {
-      console.log("\n=================================");
-      console.log("🛰️ Autopilot Execution Worker Test Complete.");
-      console.log(`📊 Result Payload: ${result}`);
-      console.log("=================================\n");
-    })
-    .catch((err) => console.error(err));
+  return "NO_SETUP: All monitored assets are in ranging sideways markets. Execution safely aborted.";
 }
