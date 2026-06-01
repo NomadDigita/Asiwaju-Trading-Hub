@@ -24,7 +24,6 @@ export const client = new Client({
   ]
 });
 
-// Localized maps to securely hold states per user guild session
 const pendingProposals = new Map<string, TradeProposal>();
 let isAutopilotOn = false;
 
@@ -97,7 +96,6 @@ client.once('ready', () => {
 
 // Message Routing Listener
 client.on('messageCreate', async (message) => {
-  // Ignore bot messages
   if (message.author.bot) return;
 
   const content = message.content.trim();
@@ -304,5 +302,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// Log Client In
-client.login(discordToken);
+// Log Client In with safe error catching
+client.login(discordToken)
+  .then(() => console.log("🚀 Asiwaju Discord Companion Bot is active and listening..."))
+  .catch((err) => console.error("⚠️ Discord Bot failed to start:", err.message));

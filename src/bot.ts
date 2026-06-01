@@ -17,7 +17,6 @@ if (!botToken) {
 
 export const bot = new Telegraf(botToken);
 
-// Localized maps to securely hold states per user chat session
 const pendingProposals = new Map<number, TradeProposal>();
 let isAutopilotOn = false;
 
@@ -336,10 +335,10 @@ bot.command('autopilot', async (ctx) => {
   }
 });
 
-// Launch Bot
-bot.launch().then(() => {
-  console.log("🚀 Asiwaju AI Hub Unified Bot is active and listening on Telegram...");
-});
+// Launch Bot with safe error catching
+bot.launch()
+  .then(() => console.log("🚀 Asiwaju AI Hub Unified Bot is active and listening on Telegram..."))
+  .catch((err) => console.error("⚠️ Telegram Bot failed to start:", err.message));
 
 // Graceful termination
 process.once('SIGINT', () => bot.stop('SIGINT'));

@@ -1,13 +1,21 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Global safeguards: Prevent any unhandled promise rejections or socket timeouts from crashing the server
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ [Shield] Unhandled Rejection intercepted:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ [Shield] Uncaught Exception intercepted:', err.message);
+});
+
 import http from 'http';
 import https from 'https';
 
 // Import our self-executing bot controllers
-import { bot, convertMarkdownToTelegramHtml, sendSafeHtmlMessage } from './bot';
-import { client, sendDiscordSafeMessage } from './discord';
-import { runAutopilotExecution } from './utils/agent';
+import './bot';
+import './discord';
 
 const PORT = process.env.PORT || 8080;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "https://asiwaju-trading-hub.onrender.com";
@@ -21,7 +29,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`📡 Render Port-Binding established on port ${PORT}. Bots are operational.`);
 
-  // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping
+  // Self-Ping Loop: Executes an internal request every 10 minutes to prevent free-tier sleeping
   setInterval(() => {
     if (RENDER_URL) {
       console.log(`🛰️ Keep-Alive: Pinging self at ${RENDER_URL}...`);
@@ -31,13 +39,16 @@ server.listen(PORT, () => {
         console.error(`⚠️ Keep-Alive: Self-ping failed:`, err.message);
       });
     }
-  }, 10 * 60 * 1000); // 10 minutes in milliseconds
+  }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
+  // Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
     try {
-      // Execute the multi-asset scanning autopilot
+      const { runAutopilotExecution } = require('./utils/agent');
+      const { bot, convertMarkdownToTelegramHtml } = require('./bot');
+      const { client } = require('./discord');
+
       const result = await runAutopilotExecution();
       const [status, symbol, side, price, details] = result.split(":");
 
@@ -73,5 +84,5 @@ server.listen(PORT, () => {
     } catch (error: any) {
       console.error("❌ Exception during background autopilot scan:", error.message);
     }
-  }, 10 * 60 * 1000); // 10 minutes in milliseconds
+  }, 10 * 60 * 1000);
 });
