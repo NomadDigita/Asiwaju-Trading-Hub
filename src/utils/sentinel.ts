@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { callUnifiedAI } from './ai';
+
 interface NewsHeadline {
   source: string;
   headline: string;
@@ -8,13 +10,9 @@ interface NewsHeadline {
 }
 
 export async function runNewsAudit(): Promise<string> {
-  const apiKey = process.env.MULERUN_API_KEY;
-  if (!apiKey) throw new Error("MULERUN_API_KEY is missing from environment variables.");
-
   let newsFeed: NewsHeadline[] = [];
 
   try {
-    // Fetch top 5 real-time breaking crypto news headlines from the public CryptoCompare feed
     const response = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
     const result = await response.json();
 
@@ -63,24 +61,8 @@ export async function runNewsAudit(): Promise<string> {
   [Provide 2 sentences of tactical, practical risk-adjusted positioning advice based on this intelligence digest]`;
 
   try {
-    const response = await fetch('https://api.mulerun.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: sentinelPrompt },
-          { role: 'user', content: `Analyze this news feed: ${JSON.stringify(newsFeed, null, 2)}` }
-        ],
-        stream: false
-      })
-    });
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || "Failed to generate market intelligence.";
+    const userPrompt = `Analyze this news feed: ${JSON.stringify(newsFeed, null, 2)}`;
+    return await callUnifiedAI(sentinelPrompt, userPrompt);
   } catch (error) {
     console.error("Error in Sentinel analysis loop:", error);
     throw error;

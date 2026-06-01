@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import crypto from 'crypto';
+import { callUnifiedAI } from './ai';
 
 interface TradeLog {
   timestamp: string;
@@ -12,7 +13,6 @@ interface TradeLog {
   notes?: string;
 }
 
-// Simulated emotional trade log to demonstrate system audit logic on empty wallets or geoblocks
 const MOCK_EMOTIONAL_LOG: TradeLog[] = [
   { timestamp: "1780000000000", symbol: "SOLUSDT", side: "buy", price: "188.50", size: "15", notes: "Bought at local peak after a massive green hourly candle (FOMO)" },
   { timestamp: "1780003600000", symbol: "SOLUSDT", side: "sell", price: "171.20", size: "15", notes: "Panic sold at a major loss during a temporary drop" },
@@ -46,9 +46,7 @@ export async function runBehavioralAudit(): Promise<string> {
   let trades: TradeLog[] = [];
   let isDemoMode = false;
 
-  // Automatically bypass the US-blocked Bitget API if running in Vercel Serverless
   if (process.env.VERCEL) {
-    console.log("🛰️ [Guardian] Vercel environment detected. Bypassing geoblocked handshake.");
     trades = MOCK_EMOTIONAL_LOG;
     isDemoMode = true;
   } else {
@@ -56,7 +54,6 @@ export async function runBehavioralAudit(): Promise<string> {
     const headers = getBitgetHeaders('GET', requestPath);
 
     try {
-      // Attempt to pull real historical orders from Bitget
       const response = await fetch('https://api.bitget.com' + requestPath + '?limit=10', {
         method: 'GET',
         headers: headers
@@ -83,10 +80,6 @@ export async function runBehavioralAudit(): Promise<string> {
       isDemoMode = true;
     }
   }
-
-  // Orchestrate the Behavioral Risk Audit via MuleRun
-  const apiKey = process.env.MULERUN_API_KEY;
-  if (!apiKey) throw new Error("MULERUN_API_KEY is missing from environment variables.");
 
   const auditPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub. 
   Your objective is to analyze a user's recent trade history logs, detect psychological flaws or behavioral mistakes, 
@@ -116,24 +109,8 @@ export async function runBehavioralAudit(): Promise<string> {
   3. **[Adjustment Name]:** [1-sentence rule to fix bias 3]`;
 
   try {
-    const response = await fetch('https://api.mulerun.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: auditPrompt },
-          { role: 'user', content: `Analyze this trade log: ${JSON.stringify(trades, null, 2)}` }
-        ],
-        stream: false
-      })
-    });
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || "Failed to generate risk audit.";
+    const userPrompt = `Analyze this trade log: ${JSON.stringify(trades, null, 2)}`;
+    return await callUnifiedAI(auditPrompt, userPrompt);
   } catch (error) {
     console.error("Error in behavioral audit loop:", error);
     throw error;

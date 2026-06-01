@@ -461,7 +461,7 @@ export default function Dashboard() {
                   <span className="text-cyan-400 font-bold">📈</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.tech}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.tech}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
@@ -469,7 +469,7 @@ export default function Dashboard() {
                   <span className="text-rose-400 font-bold">🛡️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.risk}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.risk}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
@@ -477,11 +477,10 @@ export default function Dashboard() {
                   <span className="text-emerald-400 font-bold">⛓️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.chain}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.chain}</p>
               </div>
             </div>
 
-            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -503,12 +502,12 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="space-y-4">
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">
                   <b>Synthesized Debate:</b> {committeeReport.debate}
                 </p>
                 <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
                   <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
-                  <span className="text-xs font-bold text-white/90">{committeeReport.trigger}</span>
+                  <span className="text-xs font-bold text-white/95">{committeeReport.trigger}</span>
                 </div>
 
                 {/* Collapsible Proof of Reasoning terminal block */}

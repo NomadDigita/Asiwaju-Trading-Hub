@@ -4,10 +4,12 @@ import React from "react";
 
 export default function Navbar() {
   return (
-    // Fixed container locked to the viewport
-    <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 md:px-6 py-4 pointer-events-none">
-      
-      {/* Inner card floats via margin-top to avoid GPU transform decoupling on desktop */}
+    // Hardcoded absolute fixed properties applied directly to bypass standard layout viewport overrides on PC
+    <header 
+      className="w-full px-4 md:px-6 py-4 pointer-events-none"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 99999 }}
+    >
+      {/* Inner card floats via stable margin offsets instead of transform layers */}
       <div className="mx-auto max-w-7xl glass-panel rounded-2xl px-4 md:px-6 py-3.5 flex items-center justify-between border border-white/8 float-header pointer-events-auto">
         
         {/* Brand Logo & Name */}

@@ -3,6 +3,7 @@ dotenv.config();
 
 import { getBitgetHeaders } from './bitget';
 import { runNewsAudit } from './sentinel';
+import { callUnifiedAI } from './ai';
 
 export interface TradeProposal {
   symbol: string;
@@ -14,9 +15,8 @@ export interface TradeProposal {
   reason: string;
 }
 
-// 1. Perception Layer: Pull live Spot Ticker price (Binance unblocked fallback included)
+// 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel-Bypass Included)
 async function getLivePrice(symbol: string): Promise<string> {
-  // If running on Vercel, query Binance's public unblocked API to fetch the actual, real-time price of any token
   if (process.env.VERCEL) {
     try {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
@@ -55,17 +55,13 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     return null;
   }
 
-  // Synthesize market sentiment from the Sentinel Terminal
   let sentimentSummary = "Macro indicators ranging.";
   try {
     const sentinelData = await runNewsAudit();
-    sentimentSummary = sentinelData.slice(0, 500); // Feed a snippet of the news digest to the agent
+    sentimentSummary = sentinelData.slice(0, 500); 
   } catch (err) {
     console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone.");
   }
-
-  const apiKey = process.env.MULERUN_API_KEY;
-  if (!apiKey) throw new Error("MULERUN_API_KEY is missing from environment variables.");
 
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
   Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
@@ -84,24 +80,8 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   If no clear setup exists, return the text: "NO_SETUP"`;
 
   try {
-    const response = await fetch('https://api.mulerun.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: agentBrainPrompt },
-          { role: 'user', content: `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}` }
-        ],
-        stream: false
-      })
-    });
-
-    const data = await response.json();
-    const resultText = data.choices?.[0]?.message?.content?.trim() || "NO_SETUP";
+    const userPrompt = `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}`;
+    const resultText = await callUnifiedAI(agentBrainPrompt, userPrompt);
 
     if (resultText === "NO_SETUP" || !resultText.startsWith("{")) {
       return null;
@@ -111,9 +91,9 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
     // BITGET V2 SPECIFIC SIZE ALLOCATION (USDT for buys, coin amount for sells)
     if (proposal.side === "buy") {
-      proposal.quantity = "5.0000"; // Market Buy size represents Quote Coin (USDT)
+      proposal.quantity = "5.0000"; 
     } else {
-      const quantityNum = 5 / priceNum; // Market Sell size represents Base Coin (SOL/BTC)
+      const quantityNum = 5 / priceNum; 
       proposal.quantity = quantityNum.toFixed(4);
     }
 
@@ -128,13 +108,12 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 export async function executeApprovedTrade(proposal: TradeProposal): Promise<string> {
   const requestPath = '/api/v2/spot/trade/place-order';
   
-  // Construct precise market order body using the correct parameter 'size'
   const body = JSON.stringify({
     symbol: proposal.symbol,
-    side: proposal.side, // 'buy' or 'sell'
+    side: proposal.side, 
     orderType: 'market',
-    size: proposal.quantity, // Correct V2 parameter name 'size' mapped here
-    clientOid: `asiwaju_${Date.now()}` // Unique client ID
+    size: proposal.quantity, 
+    clientOid: `asiwaju_${Date.now()}` 
   });
 
   const headers = getBitgetHeaders('POST', requestPath, body);
@@ -174,8 +153,7 @@ export async function runAutopilotExecution(specificCoin?: string): Promise<stri
         continue;
       }
 
-      // Set autonomous safety parameters
-      const confidenceScore = 9; // High-conviction score simulated by scanning parameters
+      const confidenceScore = 9; 
       const MIN_CONFIDENCE_REQUIRED = 8;
 
       if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {

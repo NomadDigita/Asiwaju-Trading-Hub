@@ -1,10 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-export async function generateStrategyAndBacktest(prompt: string): Promise<string> {
-  const apiKey = process.env.MULERUN_API_KEY;
-  if (!apiKey) throw new Error("MULERUN_API_KEY is missing from environment variables.");
+import { callUnifiedAI } from './ai';
 
+export async function generateStrategyAndBacktest(prompt: string): Promise<string> {
   const labPrompt = `You are the Chief Quantitative Strategist and Code Compiler at Asiwaju AI Hub. 
   Your job is to translate the user's natural language trading strategy into structured quantitative logic, 
   generate a clean Python Pandas/Backtesting script, and run a simulated 30-day backtest performance report.
@@ -35,37 +34,10 @@ export async function generateStrategyAndBacktest(prompt: string): Promise<strin
   [Provide a 2-sentence warning or positive outlook on this strategy's long-term sustainability]`;
 
   try {
-    const response = await fetch('https://api.mulerun.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: labPrompt },
-          { role: 'user', content: `Please compile and simulate this strategy: ${prompt}` }
-        ],
-        stream: false
-      })
-    });
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() || "Failed to compile strategy.";
+    const userPrompt = `Please compile and simulate this strategy: ${prompt}`;
+    return await callUnifiedAI(labPrompt, userPrompt);
   } catch (error) {
     console.error("Error in Strategy Lab execution:", error);
     throw error;
   }
-}
-
-// Self-executing CLI test block
-if (require.main === module) {
-  generateStrategyAndBacktest("Buy when RSI is below 30 on the 1h chart, and sell when price gains 4% or hits a 2% stop-loss.")
-    .then((report) => {
-      console.log("\n=================================");
-      console.log(report);
-      console.log("=================================\n");
-    })
-    .catch((err) => console.error(err));
 }
