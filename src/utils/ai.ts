@@ -14,10 +14,13 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
   const qwenKey = process.env.QWEN_API_KEY;
   const muleKey = process.env.MULERUN_API_KEY;
 
-  // 1. Primary Attempt: MuleRun Gateway (Gemini-2.5-Flash)
+  // Dynamically adjust timeout: 8 seconds for Vercel Serverless, 30 seconds for Render background workers
+  const TIMEOUT_LIMIT = process.env.VERCEL ? 8000 : 30000;
+
+  // 1. Primary Attempt: MuleRun Gateway (Verified Stable & Active)
   if (muleKey && muleKey !== 'waiting_for_telegram') {
     try {
-      console.log("🧠 [AI] Querying Primary Gateway: MuleRun (Gemini-2.5-Flash)...");
+      console.log(`🧠 [AI] Querying Primary Gateway: MuleRun (Timeout: ${TIMEOUT_LIMIT / 1000}s)...`);
       const response = await fetchWithTimeout('https://api.mulerun.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -32,7 +35,7 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
           ],
           stream: false
         })
-      });
+      }, TIMEOUT_LIMIT);
 
       if (response.status === 200) {
         const data = await response.json();
@@ -45,10 +48,10 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
     }
   }
 
-  // 2. Secondary Fallback: Alibaba Cloud DashScope (Qwen-Plus)
+  // 2. Secondary Attempt: Alibaba Cloud DashScope (Qwen-Plus)
   if (qwenKey && qwenKey !== 'waiting_for_email') {
     try {
-      console.log("🧠 [AI] Querying Secondary Fallback: Alibaba Cloud Qwen-Plus...");
+      console.log(`🧠 [AI] Querying Secondary Fallback: Alibaba Cloud Qwen-Plus (Timeout: ${TIMEOUT_LIMIT / 1000}s)...`);
       const response = await fetchWithTimeout('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -63,7 +66,7 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
           ],
           stream: false
         })
-      });
+      }, TIMEOUT_LIMIT);
 
       if (response.status === 200) {
         const data = await response.json();
