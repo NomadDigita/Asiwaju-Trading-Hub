@@ -14,19 +14,21 @@ interface TradeProposal {
   reason: string;
 }
 
+// Redirect all Web dashboard fetches to your secure, long-running Render API Server
+const BACKEND_API_BASE = "https://asiwaju-trading-hub.onrender.com";
+
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Indestructible Wildcard Matchers)
+// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
-  // Wildcard matchers that ignore bold asterisks, emojis, and header prefixes
-  const ratingMatch = md.match(/Rating:\s*\*?\*?\s*(\w+)/i);
-  const scoreMatch = md.match(/Score:\s*\*?\*?\s*(\d+\/\d+)/i) || md.match(/Score:\s*\*?\*?\s*(\d+)/i);
-  const triggerMatch = md.match(/Primary\s*Action\s*Trigger:\s*\*?\*?\s*(.*)/i);
+  const ratingMatch = md.match(/\*\s*\*\*Rating:\*\*\s*(.*)/i);
+  const scoreMatch = md.match(/\*\s*\*\*Confidence Score:\*\*\s*(.*)/i);
+  const triggerMatch = md.match(/\*\s*\*\*Primary Action Trigger:\*\*\s*(.*)/i);
   
   const techMatch = md.match(/Technical\s*(?:View|Perspectives?):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Risk\s*Manager)/i);
   const riskMatch = md.match(/(?:Risk\s*Manager\s*Warning|Risk\s*Warning):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*On-Chain)/i);
-  const chainMatch = md.match(/On-Chain\s*(?:Signal|Activity|Perspectives?):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
+  const chainMatch = md.match(/On-Chain\s*(?:Signal|Activity|Perspectives?):?\s*\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
   
   const debateMatch = md.match(/(?:Debate\s*&\s*Consensus):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*📌|\n\s*Committee\s*Verdict)/i);
   const reasoningMatch = md.match(/(?:Proof\s*of\s*Reasoning|Chain-of-Thought):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
@@ -46,8 +48,8 @@ function parseCommitteeReport(md: string) {
 function parseAuditReport(md: string) {
   const scoreMatch = md.match(/Score:\s*(\d+)/i);
   const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*🔍/i);
-  const biasesMatch = md.match(/(?:Biases\s*Identified|Psychological\s*Biases):?\s*\*?\*?\s*(.*)/i);
-  const mistakesMatch = md.match(/(?:Critical\s*Mistakes|Worst\s*Trade):?\s*\*?\*?\s*(.*)/i);
+  const biasesMatch = md.match(/(?:Biases\s*Identified|Psychological\s*Biases):?\s*\*?\s*(.*)/i);
+  const mistakesMatch = md.match(/(?:Critical\s*Mistakes|Worst\s*Trade):?\s*\*?\s*(.*)/i);
 
   const adj1Match = md.match(/1\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
   const adj2Match = md.match(/2\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
@@ -71,7 +73,7 @@ function parseStrategyReport(md: string) {
   const codeMatch = md.match(/\`\`\`python([\s\S]*?)\`\`\`/i);
   
   const winMatch = md.match(/Win\s*Rate:\s*\*?\*?\s*([\d\.]+%?)/i);
-  const tradesMatch = md.match(/Total\s*Trades\s*Executed:\s*\*?\*?\s*(\d+)/i);
+  const tradesMatch = md.match(/Total\s*Trades\s*Executed:\s*\*?\s*(\d+)/i);
   const pnlMatch = md.match(/Net\s*Profit\/Loss:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
   const drawdownMatch = md.match(/Max\s*Drawdown:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
   const factorMatch = md.match(/Profit\s*Factor:\s*\*?\*?\s*([\d\.]+)/i);
@@ -114,7 +116,7 @@ function parseSentinelReport(md: string) {
     rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
     macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
     drivers: drivers.length > 0 ? drivers : [
-      { event: "ETF Inflow Surge", desc: "Institutions are actively acquiring baseline spots." }
+      { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
     ],
     tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
   };
@@ -161,7 +163,7 @@ export default function Dashboard() {
   const [coinInput, setCoinInput] = useState("SOL");
   const [strategyInput, setStrategyInput] = useState("Buy when RSI is below 30 on the 1h, sell on a 4% gain or 2% stop-loss");
   
-  // Independent loading states per tab (Prevents concurrent loading glitches)
+  // Independent loading states per tab
   const [committeeLoading, setCommitteeLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [strategyLoading, setStrategyLoading] = useState(false);
@@ -232,7 +234,7 @@ export default function Dashboard() {
   useEffect(() => {
     const pulseTimer = setInterval(async () => {
       try {
-        const response = await fetch("/api/agent?coin=SOL");
+        const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=SOL`);
         const data = await response.json();
         if (data && data.price) {
           console.log(`📡 [Live Pulse] Fetching current SOL spot price: $${parseFloat(data.price).toFixed(2)}`);
@@ -250,7 +252,7 @@ export default function Dashboard() {
   const handleConveneCommittee = async () => {
     setCommitteeLoading(true);
     try {
-      const response = await fetch("/api/committee", {
+      const response = await fetch(`${BACKEND_API_BASE}/api/committee`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ coin: coinInput })
@@ -270,7 +272,7 @@ export default function Dashboard() {
   const handleRunAudit = async () => {
     setAuditLoading(true);
     try {
-      const response = await fetch("/api/audit", { method: "POST" });
+      const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { method: "POST" });
       const data = await response.json();
       if (data.report) {
         setAuditReport(parseAuditReport(data.report));
@@ -286,7 +288,7 @@ export default function Dashboard() {
   const handleCompileStrategy = async () => {
     setStrategyLoading(true);
     try {
-      const response = await fetch("/api/strategy", {
+      const response = await fetch(`${BACKEND_API_BASE}/api/strategy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: strategyInput })
@@ -306,7 +308,7 @@ export default function Dashboard() {
   const handleRunSentinel = async () => {
     setSentinelLoading(true);
     try {
-      const response = await fetch("/api/sentinel", { method: "POST" });
+      const response = await fetch(`${BACKEND_API_BASE}/api/sentinel`, { method: "POST" });
       const data = await response.json();
       if (data.report) {
         setSentinelReport(parseSentinelReport(data.report));
@@ -323,7 +325,7 @@ export default function Dashboard() {
     setAgentLoading(true);
     setExecutionMessage(null);
     try {
-      const response = await fetch(`/api/agent?coin=${coinInput}`);
+      const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${coinInput}`);
       const data = await response.json();
       if (data && data.symbol) {
         setAgentProposal(data);
@@ -345,7 +347,7 @@ export default function Dashboard() {
     setExecutionMessage("🔒 [ShieldSDK] Intercepting order... Running full-stack safety analysis...");
     
     try {
-      const response = await fetch("/api/agent", {
+      const response = await fetch(`${BACKEND_API_BASE}/api/agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agentProposal)
@@ -378,7 +380,7 @@ export default function Dashboard() {
     if (nextState) {
       setExecutionMessage("🤖 [Autopilot] Mode Engaged. Commencing active market monitoring...");
       try {
-        const response = await fetch("/api/autopilot", {
+        const response = await fetch(`${BACKEND_API_BASE}/api/autopilot`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ coin: coinInput })
@@ -438,7 +440,7 @@ export default function Dashboard() {
         {/* TAB 1: WAR ROOM */}
         {activeTab === "committee" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Convene the AI Investment Committee</h3>
                 <p className="text-xs font-semibold text-white/90">Prompt parallel specialized analysts to debate market metrics & technical trend directions.</p>
@@ -486,6 +488,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -536,7 +539,7 @@ export default function Dashboard() {
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
-                <p className="text-xs font-semibold text-white/95 leading-relaxed">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
+                <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
               </div>
               <button
                 onClick={handleRunAudit}
@@ -694,10 +697,10 @@ export default function Dashboard() {
         {/* TAB 4: THE SENTINEL */}
         {activeTab === "sentinel" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Sentinel News & Macro Analyst</h3>
-                <p className="text-xs font-semibold text-white/95 leading-relaxed">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
+                <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
               </div>
               <button
                 onClick={handleRunSentinel}

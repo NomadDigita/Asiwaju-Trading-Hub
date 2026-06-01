@@ -51,11 +51,15 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
 
   let enrichedUserPrompt = userPrompt;
 
-  // If the query is research or sentiment-related, enrich it with sub-minute web search results
-  if (userPrompt.toUpperCase().includes("SOL") || userPrompt.toUpperCase().includes("BTC") || userPrompt.toUpperCase().includes("ETH") || userPrompt.toUpperCase().includes("MNT")) {
-    const freshNews = await getSubMinuteCryptoNews(userPrompt);
+  // Extract any uppercase word of 3-5 letters (the asset ticker) from the prompt
+  const tickerMatch = userPrompt.match(/\b([A-Z]{3,5})\b/);
+  const coin = tickerMatch ? tickerMatch[1] : null;
+
+  if (coin && coin !== "USDT" && coin !== "RSI" && coin !== "MACD") {
+    // Dynamically trigger sub-minute web search for the target asset
+    const freshNews = await getSubMinuteCryptoNews(coin);
     if (freshNews) {
-      enrichedUserPrompt = `${userPrompt}\n\n[SUB-MINUTE REAL-TIME WEB SEARCH RESULTS]:\n${freshNews}`;
+      enrichedUserPrompt = `${userPrompt}\n\n[SUB-MINUTE REAL-TIME WEB SEARCH RESULTS FOR ${coin}]:\n${freshNews}`;
     }
   }
 
