@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { runInvestmentCommittee } from "@/utils/committee";
 
@@ -8,7 +10,6 @@ export async function POST(request: NextRequest): Promise<Response> {
       return NextResponse.json({ error: "Coin ticker is required." }, { status: 400 });
     }
     
-    // Execute our multi-agent debate utility
     const report = await runInvestmentCommittee(coin);
     return NextResponse.json({ report });
   } catch (error: any) {

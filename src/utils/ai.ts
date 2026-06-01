@@ -10,15 +10,54 @@ async function fetchWithTimeout(url: string, options: any, timeoutMs = 6000): Pr
   return Promise.race([fetchPromise, timeoutPromise]) as Promise<Response>;
 }
 
+// Helper: Performs a sub-minute real-time web search for target token news using Tavily
+async function getSubMinuteCryptoNews(query: string): Promise<string> {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  if (!tavilyKey) return "";
+
+  try {
+    console.log(`📡 [Search] Executing sub-minute real-time web search for: "${query}"...`);
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query: `${query} crypto news price latest`,
+        search_depth: "basic",
+        include_answers: false,
+        max_results: 3
+      })
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      if (Array.isArray(data.results)) {
+        return data.results.map((r: any) => `• [${r.title}]: ${r.content}`).join('\n');
+      }
+    }
+    return "";
+  } catch (e: any) {
+    console.warn("⚠️ Tavily Search API failed to resolve:", e.message);
+    return "";
+  }
+}
+
 export async function callUnifiedAI(systemPrompt: string, userPrompt: string): Promise<string> {
   const qwenKey = process.env.QWEN_API_KEY;
   const muleKey = process.env.MULERUN_API_KEY;
 
-  // Dynamically adjust timeout: 8 seconds for Vercel, 30 seconds for Render
   const TIMEOUT_LIMIT = process.env.VERCEL ? 8000 : 30000;
-
-  // Standard User-Agent header to bypass cloud-datacenter firewall blocks
   const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+  let enrichedUserPrompt = userPrompt;
+
+  // If the query is research or sentiment-related, enrich it with sub-minute web search results
+  if (userPrompt.toUpperCase().includes("SOL") || userPrompt.toUpperCase().includes("BTC") || userPrompt.toUpperCase().includes("ETH") || userPrompt.toUpperCase().includes("MNT")) {
+    const freshNews = await getSubMinuteCryptoNews(userPrompt);
+    if (freshNews) {
+      enrichedUserPrompt = `${userPrompt}\n\n[SUB-MINUTE REAL-TIME WEB SEARCH RESULTS]:\n${freshNews}`;
+    }
+  }
 
   let muleErrorLog = "MuleRun Key Not Configured in Environment Panel.";
   let qwenErrorLog = "Qwen Key Not Configured in Environment Panel.";
@@ -38,7 +77,7 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
           model: 'gemini-2.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
+            { role: 'user', content: enrichedUserPrompt }
           ],
           stream: false
         })
@@ -77,7 +116,7 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
           model: 'qwen-plus',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
+            { role: 'user', content: enrichedUserPrompt }
           ],
           stream: false
         })
@@ -101,11 +140,10 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
     }
   }
 
-  // Compile and throw a highly detailed diagnostic report returned directly as the error!
   throw new Error(
     `🚨 [AI GATEWAY OUTAGE REPORT]\n\n` +
     `1️⃣ [MuleRun API Log]:\n${muleErrorLog}\n\n` +
     `2️⃣ [Alibaba Qwen API Log]:\n${qwenErrorLog}\n\n` +
-    `👉 Please review these logs to locate the exact cause (such as 401 Unauthorized, 402 Insufficient Funds, or 404 Endpoint Not Found).`
+    `👉 Please review these logs to locate the exact cause.`
   );
 }
