@@ -15,20 +15,21 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
+// AI MARKDOWN PARSERS (Completely Indestructible Wildcard Matchers)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
-  const ratingMatch = md.match(/\*\s*\*\*Rating:\*\*\s*(.*)/i);
-  const scoreMatch = md.match(/\*\s*\*\*Confidence Score:\*\*\s*(.*)/i);
-  const triggerMatch = md.match(/\*\s*\*\*Primary Action Trigger:\*\*\s*(.*)/i);
+  // Wildcard matchers that ignore bold asterisks, emojis, and header prefixes
+  const ratingMatch = md.match(/Rating:\s*\*?\*?\s*(\w+)/i);
+  const scoreMatch = md.match(/Score:\s*\*?\*?\s*(\d+\/\d+)/i) || md.match(/Score:\s*\*?\*?\s*(\d+)/i);
+  const triggerMatch = md.match(/Primary\s*Action\s*Trigger:\s*\*?\*?\s*(.*)/i);
   
-  const techMatch = md.match(/\*\s*\*\*Technical View:\*\*\s*(.*)/i);
-  const riskMatch = md.match(/\*\s*\*\*Risk Manager Warning:\*\*\s*(.*)/i);
-  const chainMatch = md.match(/\*\s*\*\*On-Chain Signal:\*\*\s*(.*)/i);
+  const techMatch = md.match(/Technical\s*(?:View|Perspectives?):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Risk\s*Manager)/i);
+  const riskMatch = md.match(/(?:Risk\s*Manager\s*Warning|Risk\s*Warning):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*On-Chain)/i);
+  const chainMatch = md.match(/On-Chain\s*(?:Signal|Activity|Perspectives?):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
   
-  const debateMatch = md.match(/###\s*⚖️\s*Debate\s*&\s*Consensus:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/###\s*⚖️\s*Debate\s*&\s*Consensus:\s*\n*([\s\S]*?)$/i);
-  const reasoningMatch = md.match(/###\s*🧠\s*Proof\s*of\s*Reasoning:\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/###\s*🧠\s*Proof\s*of\s*Reasoning:\s*\n*([\s\S]*?)$/i);
+  const debateMatch = md.match(/(?:Debate\s*&\s*Consensus):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*📌|\n\s*Committee\s*Verdict)/i);
+  const reasoningMatch = md.match(/(?:Proof\s*of\s*Reasoning|Chain-of-Thought):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
 
   return {
     rating: ratingMatch ? ratingMatch[1].trim() : "HOLD",
@@ -44,9 +45,9 @@ function parseCommitteeReport(md: string) {
 
 function parseAuditReport(md: string) {
   const scoreMatch = md.match(/Score:\s*(\d+)/i);
-  const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i);
-  const biasesMatch = md.match(/\*\s*\*\*Biases\s*Identified:\*\*\s*(.*)/i);
-  const mistakesMatch = md.match(/\*\s*\*\*Critical\s*Mistakes:\*\*\s*(.*)/i);
+  const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*🔍/i);
+  const biasesMatch = md.match(/(?:Biases\s*Identified|Psychological\s*Biases):?\s*\*?\*?\s*(.*)/i);
+  const mistakesMatch = md.match(/(?:Critical\s*Mistakes|Worst\s*Trade):?\s*\*?\*?\s*(.*)/i);
 
   const adj1Match = md.match(/1\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
   const adj2Match = md.match(/2\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
@@ -66,16 +67,16 @@ function parseAuditReport(md: string) {
 }
 
 function parseStrategyReport(md: string) {
-  const translationMatch = md.match(/###\s*📝\s*Strategy\s*Translation:\s*\n*([\s\S]*?)\n*\n*###/i);
+  const translationMatch = md.match(/(?:Strategy\s*Translation):?\s*\n*([\s\S]*?)\n*\n*###/i);
   const codeMatch = md.match(/\`\`\`python([\s\S]*?)\`\`\`/i);
   
-  const winMatch = md.match(/\*\s*\*\*Win\s*Rate:\*\*\s*(.*)/i);
-  const tradesMatch = md.match(/\*\s*\*\*Total\s*Trades\s*Executed:\*\*\s*(.*)/i);
-  const pnlMatch = md.match(/\*\s*\*\*Net\s*Profit\/Loss:\*\*\s*(.*)/i);
-  const drawdownMatch = md.match(/\*\s*\*\*Max\s*Drawdown:\*\*\s*(.*)/i);
-  const factorMatch = md.match(/\*\s*\*\*Profit\s*Factor:\*\*\s*(.*)/i);
+  const winMatch = md.match(/Win\s*Rate:\s*\*?\*?\s*([\d\.]+%?)/i);
+  const tradesMatch = md.match(/Total\s*Trades\s*Executed:\s*\*?\*?\s*(\d+)/i);
+  const pnlMatch = md.match(/Net\s*Profit\/Loss:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
+  const drawdownMatch = md.match(/Max\s*Drawdown:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
+  const factorMatch = md.match(/Profit\s*Factor:\s*\*?\*?\s*([\d\.]+)/i);
   
-  const verdictMatch = md.match(/###\s*🔍\s*Risk\s*Analyst\s*Verdict:\s*\n*([\s\S]*?)$/i);
+  const verdictMatch = md.match(/(?:Risk\s*Analyst\s*Verdict|Quant\s*Verdict):?\s*\n*([\s\S]*?)$/i);
 
   return {
     translation: translationMatch ? translationMatch[1].trim() : "Logical execution translation resolved.",
@@ -98,7 +99,6 @@ function parseSentinelReport(md: string) {
   const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
   let match;
   
-  // Emoji-free robust news section divider
   const driversSection = md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
   
   if (driversSection) {
@@ -107,14 +107,14 @@ function parseSentinelReport(md: string) {
     }
   }
 
-  const tacticalMatch = md.match(/###\s*💡\s*Tactical\s*Trade\s*Suggestion:\s*\n*([\s\S]*?)$/i);
+  const tacticalMatch = md.match(/(?:Tactical\s*Trade\s*Suggestion|Tactical\s*Sentiment\s*Advisory):?\s*\n*([\s\S]*?)$/i);
 
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
     rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
     macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
     drivers: drivers.length > 0 ? drivers : [
-      { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
+      { event: "ETF Inflow Surge", desc: "Institutions are actively acquiring baseline spots." }
     ],
     tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
   };
@@ -160,7 +160,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("committee");
   const [coinInput, setCoinInput] = useState("SOL");
   const [strategyInput, setStrategyInput] = useState("Buy when RSI is below 30 on the 1h, sell on a 4% gain or 2% stop-loss");
-  const [isSimulating, setIsSimulating] = useState(false);
+  
+  // Independent loading states per tab (Prevents concurrent loading glitches)
+  const [committeeLoading, setCommitteeLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [sentinelLoading, setSentinelLoading] = useState(false);
+  const [agentLoading, setAgentLoading] = useState(false);
 
   // States
   const [committeeReport, setCommitteeReport] = useState({
@@ -242,7 +248,7 @@ export default function Dashboard() {
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
-    setIsSimulating(true);
+    setCommitteeLoading(true);
     try {
       const response = await fetch("/api/committee", {
         method: "POST",
@@ -256,13 +262,13 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSimulating(false);
+      setCommitteeLoading(false);
     }
   };
 
   // 2. Behavioral Audit (Guardian API)
   const handleRunAudit = async () => {
-    setIsSimulating(true);
+    setAuditLoading(true);
     try {
       const response = await fetch("/api/audit", { method: "POST" });
       const data = await response.json();
@@ -272,13 +278,13 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSimulating(false);
+      setAuditLoading(false);
     }
   };
 
   // 3. Compile Strategy (Strategy Lab API)
   const handleCompileStrategy = async () => {
-    setIsSimulating(true);
+    setStrategyLoading(true);
     try {
       const response = await fetch("/api/strategy", {
         method: "POST",
@@ -292,13 +298,13 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSimulating(false);
+      setStrategyLoading(false);
     }
   };
 
   // 4. Query Sentinel News (Sentinel API)
   const handleRunSentinel = async () => {
-    setIsSimulating(true);
+    setSentinelLoading(true);
     try {
       const response = await fetch("/api/sentinel", { method: "POST" });
       const data = await response.json();
@@ -308,13 +314,13 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSimulating(false);
+      setSentinelLoading(false);
     }
   };
 
   // 5. Scan Market Setup (Trading Agent Scan API)
   const handleAgentScan = async () => {
-    setIsSimulating(true);
+    setAgentLoading(true);
     setExecutionMessage(null);
     try {
       const response = await fetch(`/api/agent?coin=${coinInput}`);
@@ -328,14 +334,14 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSimulating(false);
+      setAgentLoading(false);
     }
   };
 
   // 6. Execute Approved Trade (ShieldSDK Pipeline API)
   const handleExecuteTrade = async () => {
     if (!agentProposal) return;
-    setIsSimulating(true);
+    setAgentLoading(true);
     setExecutionMessage("🔒 [ShieldSDK] Intercepting order... Running full-stack safety analysis...");
     
     try {
@@ -360,7 +366,7 @@ export default function Dashboard() {
       console.error(err);
       setExecutionMessage("❌ Exception during SDK routing. Auto-blocked.");
     } finally {
-      setIsSimulating(false);
+      setAgentLoading(false);
     }
   };
 
@@ -400,7 +406,7 @@ export default function Dashboard() {
   return (
     <div className="w-full mt-6 space-y-8 animate-fade-in-up">
       
-      {/* Scrollable Mobile Navigation Dock - [Removed CSS float transform to resolve PC stacking context overrides] */}
+      {/* Scrollable Mobile Navigation Dock */}
       <nav className="flex justify-center max-w-full">
         <div className="flex items-center gap-1.5 p-1.5 bg-white/5 rounded-2xl border border-white/8 backdrop-blur-md overflow-x-auto max-w-full scrollbar-none whitespace-nowrap">
           {[
@@ -446,10 +452,10 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={handleConveneCommittee}
-                  disabled={isSimulating}
+                  disabled={committeeLoading}
                   className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
                 >
-                  {isSimulating ? "DeBATING..." : "Convene Committee"}
+                  {committeeLoading ? "DeBATING..." : "Convene Committee"}
                 </button>
               </div>
             </div>
@@ -460,7 +466,7 @@ export default function Dashboard() {
                   <span className="text-cyan-400 font-bold">📈</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.tech}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.tech}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
@@ -468,7 +474,7 @@ export default function Dashboard() {
                   <span className="text-rose-400 font-bold">🛡️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.risk}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.risk}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
@@ -476,11 +482,10 @@ export default function Dashboard() {
                   <span className="text-emerald-400 font-bold">⛓️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.chain}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.chain}</p>
               </div>
             </div>
 
-            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -531,14 +536,14 @@ export default function Dashboard() {
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
-                <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
+                <p className="text-xs font-semibold text-white/95 leading-relaxed">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
               </div>
               <button
                 onClick={handleRunAudit}
-                disabled={isSimulating}
+                disabled={auditLoading}
                 className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
               >
-                {isSimulating ? "AUDITING..." : "Run Portfolio Audit"}
+                {auditLoading ? "AUDITING..." : "Run Portfolio Audit"}
               </button>
             </div>
 
@@ -622,10 +627,10 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={handleCompileStrategy}
-                disabled={isSimulating}
+                disabled={strategyLoading}
                 className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 h-11 shrink-0 self-end cursor-pointer"
               >
-                {isSimulating ? "COMPILING..." : "Compile & Run"}
+                {strategyLoading ? "COMPILING..." : "Compile & Run"}
               </button>
             </div>
 
@@ -692,14 +697,14 @@ export default function Dashboard() {
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Sentinel News & Macro Analyst</h3>
-                <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
+                <p className="text-xs font-semibold text-white/95 leading-relaxed">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
               </div>
               <button
                 onClick={handleRunSentinel}
-                disabled={isSimulating}
+                disabled={sentinelLoading}
                 className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
               >
-                {isSimulating ? "INDEXING..." : "Scan Market News"}
+                {sentinelLoading ? "INDEXING..." : "Scan Market News"}
               </button>
             </div>
 
@@ -778,10 +783,10 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={handleAgentScan}
-                  disabled={isSimulating}
+                  disabled={agentLoading}
                   className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer whitespace-nowrap"
                 >
-                  {isSimulating ? "SCANNING..." : "Scan Market Opportunity"}
+                  {agentLoading ? "SCANNING..." : "Scan Market Opportunity"}
                 </button>
               </div>
             </div>
@@ -845,7 +850,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3">
                         <span className={`h-3 w-3 rounded-full ${isAutopilot ? 'bg-emerald-400 animate-pulse' : 'bg-white/10'}`} />
                         <div>
-                          <h4 className="text-[10px] font-extrabold text-white uppercase tracking-wider">Autopilot Execution Mode</h4>
+                          <h4 className="text-[10px] font-extrabold text-white tracking-wide">Autopilot Execution Mode</h4>
                           <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals [4].</p>
                         </div>
                       </div>
@@ -865,10 +870,10 @@ export default function Dashboard() {
 
                   <button
                     onClick={handleExecuteTrade}
-                    disabled={isSimulating}
+                    disabled={agentLoading}
                     className="w-full py-4 bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                   >
-                    {isSimulating ? "BROADCASTING TRANSACTION..." : "⚡ Approve & Execute Transaction"}
+                    {agentLoading ? "BROADCASTING TRANSACTION..." : "⚡ Approve & Execute Transaction"}
                   </button>
                 </div>
               ) : (
