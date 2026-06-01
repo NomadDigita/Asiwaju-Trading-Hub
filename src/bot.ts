@@ -17,6 +17,7 @@ if (!botToken) {
 
 export const bot = new Telegraf(botToken);
 
+// Localized maps to securely hold states per user chat session
 const pendingProposals = new Map<number, TradeProposal>();
 let isAutopilotOn = false;
 
@@ -186,7 +187,7 @@ bot.command('research', async (ctx) => {
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
   } catch (error) {
     console.error(error);
-    ctx.reply("❌ Failed to resolve consensus. Check the AI gateway log.");
+    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to generate committee report.'}`);
   }
 });
 
@@ -199,7 +200,7 @@ bot.command('audit', async (ctx) => {
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
   } catch (error) {
     console.error(error);
-    ctx.reply("❌ Failed to generate portfolio audit. Check the AI gateway log.");
+    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to generate behavioral risk audit.'}`);
   }
 });
 
@@ -220,7 +221,7 @@ bot.command('strategy', async (ctx) => {
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
   } catch (error) {
     console.error(error);
-    ctx.reply("❌ Failed to compile strategy. Check the AI gateway log.");
+    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to compile strategy.'}`);
   }
 });
 
@@ -233,7 +234,7 @@ bot.command('news', async (ctx) => {
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
   } catch (error) {
     console.error(error);
-    ctx.reply("❌ Failed to compile news audit. Check the AI gateway log.");
+    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to compile sentinel news audit.'}`);
   }
 });
 
@@ -335,10 +336,18 @@ bot.command('autopilot', async (ctx) => {
   }
 });
 
-// Launch Bot with safe error catching
-bot.launch()
-  .then(() => console.log("🚀 Asiwaju AI Hub Unified Bot is active and listening on Telegram..."))
-  .catch((err) => console.error("⚠️ Telegram Bot failed to start:", err.message));
+// Launch Bot recursively to catch ETIMEDOUT handshakes and auto-recover
+function launchTelegramBot() {
+  bot.launch()
+    .then(() => {
+      console.log("🚀 Asiwaju AI Hub Unified Bot is active and listening on Telegram...");
+    })
+    .catch((err) => {
+      console.error("⚠️ Telegram Bot failed to launch. Retrying in 5 seconds...", err.message);
+      setTimeout(launchTelegramBot, 5000); // Recursive re-launch loop
+    });
+}
+launchTelegramBot();
 
 // Graceful termination
 process.once('SIGINT', () => bot.stop('SIGINT'));
