@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// LINE 1: Force ES6 variables configuration
+import 'dotenv/config';
 
 import { Telegraf } from 'telegraf';
 import crypto from 'crypto';
@@ -17,7 +17,6 @@ if (!botToken) {
 
 export const bot = new Telegraf(botToken);
 
-// Localized maps to securely hold states per user chat session
 const pendingProposals = new Map<number, TradeProposal>();
 let isAutopilotOn = false;
 
@@ -36,20 +35,14 @@ export function convertMarkdownToTelegramHtml(markdown: string): string {
   for (let i = 0; i < parts.length; i++) {
     if (parts[i].startsWith('```')) {
       const code = parts[i]
-        .replace(/^\`\`\`(python|javascript|typescript|json)?\n/, '')
-        .replace(/\`\`\`$/, '');
+        .replace(/^\`\`\`(python|javascript|typescript|json)?\n/, '').replace(/\`\`\`$/, '');
       parts[i] = `<pre>${escapeHtml(code)}</pre>`;
     } else {
       let text = escapeHtml(parts[i]);
       
-      // Convert headers (e.g. ##, ###) to bold
       text = text.replace(/^#+\s*(.*)$/gm, '<b>$1</b>');
-      
-      // Convert **bold** to <b>bold</b>
       text = text.replace(/\*\*(.*?)\*\"/g, '<b>$1</b>');
       text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-      
-      // Convert inline `code` to <code>code</code>
       text = text.replace(/\`(.*?)\`/g, '<code>$1</code>');
       
       parts[i] = text;

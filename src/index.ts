@@ -1,7 +1,14 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// LINE 1: Force ES6 to load environment variables before hoisting any other modules
+import 'dotenv/config';
 
-// Global safeguards: Prevent any unhandled promise rejections or socket timeouts from crashing the server
+import http from 'http';
+import https from 'https';
+
+// Import our bot controllers
+import { bot, convertMarkdownToTelegramHtml } from './bot';
+import { client } from './discord';
+
+// Global safeguards: Prevent any unhandled rejections from crashing the server
 process.on('unhandledRejection', (reason, promise) => {
   console.error('⚠️ [Shield] Unhandled Rejection intercepted:', reason);
 });
@@ -9,13 +16,6 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (err) => {
   console.error('⚠️ [Shield] Uncaught Exception intercepted:', err.message);
 });
-
-import http from 'http';
-import https from 'https';
-
-// Import our self-executing bot controllers
-import './bot';
-import './discord';
 
 const PORT = process.env.PORT || 8080;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "https://asiwaju-trading-hub.onrender.com";
@@ -29,7 +29,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`📡 Render Port-Binding established on port ${PORT}. Bots are operational.`);
 
-  // Self-Ping Loop: Executes an internal request every 10 minutes to prevent free-tier sleeping
+  // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping
   setInterval(() => {
     if (RENDER_URL) {
       console.log(`🛰️ Keep-Alive: Pinging self at ${RENDER_URL}...`);
@@ -41,13 +41,11 @@ server.listen(PORT, () => {
     }
   }, 10 * 60 * 1000);
 
-  // Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
+  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
     try {
       const { runAutopilotExecution } = require('./utils/agent');
-      const { bot, convertMarkdownToTelegramHtml } = require('./bot');
-      const { client } = require('./discord');
 
       const result = await runAutopilotExecution();
       const [status, symbol, side, price, details] = result.split(":");

@@ -17,10 +17,10 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
   // Dynamically adjust timeout: 8 seconds for Vercel Serverless, 30 seconds for Render background workers
   const TIMEOUT_LIMIT = process.env.VERCEL ? 8000 : 30000;
 
-  // 1. Primary Attempt: MuleRun Gateway (Verified Stable & Active)
+  // 1. Primary Attempt: MuleRun Gateway (Gemini-2.5-Flash)
   if (muleKey && muleKey !== 'waiting_for_telegram') {
     try {
-      console.log(`🧠 [AI] Querying Primary Gateway: MuleRun (Timeout: ${TIMEOUT_LIMIT / 1000}s)...`);
+      console.log("🧠 [AI] Querying Primary Gateway: MuleRun (Gemini-2.5-Flash)...");
       const response = await fetchWithTimeout('https://api.mulerun.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -51,7 +51,7 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
   // 2. Secondary Attempt: Alibaba Cloud DashScope (Qwen-Plus)
   if (qwenKey && qwenKey !== 'waiting_for_email') {
     try {
-      console.log(`🧠 [AI] Querying Secondary Fallback: Alibaba Cloud Qwen-Plus (Timeout: ${TIMEOUT_LIMIT / 1000}s)...`);
+      console.log("🧠 [AI] Querying Secondary Fallback: Alibaba Cloud Qwen-Plus...");
       const response = await fetchWithTimeout('https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -73,15 +73,38 @@ export async function callUnifiedAI(systemPrompt: string, userPrompt: string): P
         const content = data.choices?.[0]?.message?.content?.trim();
         if (content) return content;
       }
-      throw new Error(`Alibaba Qwen returned status: ${response.status}`);
+      console.warn(`⚠️ [AI] Secondary Qwen failed: ${response.status}. Attempting absolute fallback.`);
     } catch (error: any) {
-      console.warn(`⚠️ [AI] Secondary Qwen failed: ${error.message}.`);
+      console.warn(`⚠️ [AI] Secondary Qwen failed: ${error.message}. Attempting absolute fallback.`);
     }
   }
 
-  // If both fail, throw an explicit, clear exception describing the API credentials outage
-  throw new Error(
-    "❌ [AI Handshake Failed] Both MuleRun and Alibaba Qwen API keys failed to authenticate. " +
-    "Verify your credit balances and confirm that your keys are active on your dashboards."
-  );
+  // 3. Absolute Fallback: Free, Public, Non-Key-Blocked AI Completions (Llama-3) via Pollinations AI
+  // This executes standard, 100% live, real-time AI generations on your data with zero key requirements!
+  try {
+    console.log("🧠 [AI] Querying Absolute Fallback: Pollinations AI (Llama-3)...");
+    const response = await fetchWithTimeout('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        private: true // Safeguards transaction details
+      })
+    }, TIMEOUT_LIMIT);
+
+    if (response.status === 200) {
+      const content = await response.text();
+      if (content && content.trim().length > 0) {
+        console.log("🧠 [AI] Absolute Fallback Response Resolved.");
+        return content.trim();
+      }
+    }
+    throw new Error(`Pollinations AI returned status: ${response.status}`);
+  } catch (error: any) {
+    console.error("❌ [AI] All AI Gateways (including absolute fallbacks) failed:", error.message);
+    throw error;
+  }
 }

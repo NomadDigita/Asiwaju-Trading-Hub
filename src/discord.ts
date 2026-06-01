@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// LINE 1: Force ES6 variables configuration
+import 'dotenv/config';
 
 import { Client, GatewayIntentBits } from 'discord.js';
 import crypto from 'crypto';
@@ -40,21 +40,17 @@ export async function sendDiscordSafeMessage(message: any, text: string) {
   let inPreBlock = false;
 
   for (const line of lines) {
-    // Track if we are inside a code block fence
     if (line.includes('```')) {
       inPreBlock = !inPreBlock;
     }
 
-    // Evaluate buffer ceiling
     if (currentChunk.length + line.length + 15 > CHAR_LIMIT) {
       let sendText = currentChunk;
       if (inPreBlock) {
-        sendText += '\n```'; // Close block fence for this specific message
+        sendText += '\n```';
       }
 
       await message.reply(sendText);
-
-      // Carry over code block tag to the new message if split occurred inside code
       currentChunk = inPreBlock ? '```python\n' : '';
     }
 
@@ -155,7 +151,7 @@ client.on('messageCreate', async (message) => {
       await sendDiscordSafeMessage(message, report);
     } catch (error) {
       console.error(error);
-      message.reply("❌ Failed to resolve consensus. Check the AI gateway log.");
+      message.reply(`❌ Error: ${(error as any).message || 'Failed to resolve committee.'}`);
     }
   }
 
@@ -168,7 +164,7 @@ client.on('messageCreate', async (message) => {
       await sendDiscordSafeMessage(message, report);
     } catch (error) {
       console.error(error);
-      message.reply("❌ Failed to generate portfolio audit. Check the AI gateway log.");
+      message.reply(`❌ Error: ${(error as any).message || 'Failed to generate behavioral risk audit.'}`);
     }
   }
 
@@ -188,7 +184,7 @@ client.on('messageCreate', async (message) => {
       await sendDiscordSafeMessage(message, report);
     } catch (error) {
       console.error(error);
-      message.reply("❌ Failed to compile strategy. Check the AI gateway log.");
+      message.reply(`❌ Error: ${(error as any).message || 'Failed to compile strategy.'}`);
     }
   }
 
@@ -201,7 +197,7 @@ client.on('messageCreate', async (message) => {
       await sendDiscordSafeMessage(message, report);
     } catch (error) {
       console.error(error);
-      message.reply("❌ Failed to compile news audit. Check the AI gateway log.");
+      message.reply(`❌ Error: ${(error as any).message || 'Failed to compile sentinel news audit.'}`);
     }
   }
 
