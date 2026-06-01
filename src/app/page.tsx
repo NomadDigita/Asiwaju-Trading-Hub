@@ -15,7 +15,7 @@ interface TradeProposal {
 }
 
 // -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Null-Safe, Spacing & Emoji Resilient)
+// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
 // -------------------------------------------------------------
 
 function parseCommitteeReport(md: string) {
@@ -94,13 +94,12 @@ function parseSentinelReport(md: string) {
   const ratingMatch = md.match(/Index:\s*\d+\/100\s*\((.*?)\)/i);
   const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
   
-  // Extract major drivers dynamically (Emoji-Free Parser)
   const drivers: { event: string; desc: string }[] = [];
   const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
   let match;
   
-  // Isolate scanner exclusively to the Drivers markdown section
-  const driversSection = md.match(/Major\s*Sentiment\s*Drivers:?([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:?([\s\S]*?)$/i);
+  // Emoji-free robust news section divider
+  const driversSection = md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
   
   if (driversSection) {
     while ((match = driverPattern.exec(driversSection[1])) !== null) {
@@ -113,11 +112,11 @@ function parseSentinelReport(md: string) {
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
     rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
-    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving active market sentiment.",
+    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
     drivers: drivers.length > 0 ? drivers : [
       { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
     ],
-    tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly and use trailing stops."
+    tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
   };
 }
 
@@ -223,13 +222,6 @@ export default function Dashboard() {
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
   const [isAutopilot, setIsAutopilot] = useState(false);
 
-  // Shield SDK Live Activity Logs State
-  const [shieldLogs, setShieldLogs] = useState<string[]>([
-    "🔒 [ShieldSDK] AAS Gateway initialized successfully.",
-    "🔒 [ShieldSDK] Zero-Trust key vaults isolated and armed.",
-    "🛡️ [ShieldSDK] Standard risk boundaries active ($10.00 max size)."
-  ]);
-
   // 10-Second High-Frequency Live Pulse Listener
   useEffect(() => {
     const pulseTimer = setInterval(async () => {
@@ -239,12 +231,6 @@ export default function Dashboard() {
         if (data && data.price) {
           console.log(`📡 [Live Pulse] Fetching current SOL spot price: $${parseFloat(data.price).toFixed(2)}`);
           setAgentProposal(prev => prev ? { ...prev, price: data.price } : null);
-          
-          // Inject a live heartbeat security event inside the Shield SDK tab
-          setShieldLogs(prev => [
-            ...prev,
-            `🔒 [AAS] Verified live handshake with Bitget Spot V2 on ${coinInput} at $${parseFloat(data.price).toFixed(2)} [OK]`
-          ].slice(-8)); // Limit to last 8 logs for visual layout spacing
         }
       } catch (err) {
         console.warn("⚠️ Live pulse heartbeat connection dropped.");
@@ -252,7 +238,7 @@ export default function Dashboard() {
     }, 10000);
 
     return () => clearInterval(pulseTimer);
-  }, [coinInput]);
+  }, []);
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -352,12 +338,6 @@ export default function Dashboard() {
     setIsSimulating(true);
     setExecutionMessage("🔒 [ShieldSDK] Intercepting order... Running full-stack safety analysis...");
     
-    // Log intercept event to the Shield tab instantly
-    setShieldLogs(prev => [
-      ...prev,
-      `⚠️ [AAS] Intercepted incoming BUY order payload for ${agentProposal.symbol}...`
-    ].slice(-8));
-
     try {
       const response = await fetch("/api/agent", {
         method: "POST",
@@ -372,18 +352,9 @@ export default function Dashboard() {
           `🛡️ [ShieldSDK] Code Guardrails: ${data.riskGuardrail} ✅\n` +
           `🎯 [Exchange] Trade Executed! Order ID: ${data.orderId}`
         );
-        // Log successful bypass inside Shield tab
-        setShieldLogs(prev => [
-          ...prev,
-          `🟢 [AAS] Prompt checked: ${data.promptSafety}. Sizing checked: ${data.riskGuardrail}. Direct order broadcast success.`
-        ].slice(-8));
         setAgentProposal(null); // Clear proposal on success
       } else {
         setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
-        setShieldLogs(prev => [
-          ...prev,
-          `🔴 [AAS] Order rejected by guardrail policies: ${data.error || "Handshake rejected"}`
-        ].slice(-8));
       }
     } catch (err) {
       console.error(err);
@@ -400,7 +371,6 @@ export default function Dashboard() {
 
     if (nextState) {
       setExecutionMessage("🤖 [Autopilot] Mode Engaged. Commencing active market monitoring...");
-      setShieldLogs(prev => [...prev, "🤖 [Autopilot] Autopilot daemon online. Active monitoring engaged."].slice(-8));
       try {
         const response = await fetch("/api/autopilot", {
           method: "POST",
@@ -414,11 +384,9 @@ export default function Dashboard() {
             `🤖 [Autopilot] Setup Verified! direct order dispatched.\n` +
             `🎯 [Exchange] ${data.message} | Order ID: ${data.orderId}`
           );
-          setShieldLogs(prev => [...prev, `🟢 [Autopilot] Autonomous order success: ${data.orderId}`].slice(-8));
           setAgentProposal(null);
         } else {
           setExecutionMessage(`🤖 [Autopilot] Scan complete. Safety abort status: ${data.message}`);
-          setShieldLogs(prev => [...prev, `🤖 [Autopilot] Scan finished. Safety status: Aborted.`].slice(-8));
         }
       } catch (err) {
         console.error(err);
@@ -426,15 +394,14 @@ export default function Dashboard() {
       }
     } else {
       setExecutionMessage("🤖 [Autopilot] Mode Disengaged. Reverting to manual approval.");
-      setShieldLogs(prev => [...prev, "🤖 [Autopilot] Autopilot daemon shut down."].slice(-8));
     }
   };
 
   return (
     <div className="w-full mt-6 space-y-8 animate-fade-in-up">
       
-      {/* Scrollable Mobile Navigation Dock */}
-      <nav className="flex justify-center max-w-full float-card-slow">
+      {/* Scrollable Mobile Navigation Dock - [Removed CSS float transform to resolve PC stacking context overrides] */}
+      <nav className="flex justify-center max-w-full">
         <div className="flex items-center gap-1.5 p-1.5 bg-white/5 rounded-2xl border border-white/8 backdrop-blur-md overflow-x-auto max-w-full scrollbar-none whitespace-nowrap">
           {[
             { id: "committee", label: "🏛️ War Room" },
@@ -493,7 +460,7 @@ export default function Dashboard() {
                   <span className="text-cyan-400 font-bold">📈</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/95 leading-relaxed text-glow-cyan">{committeeReport.tech}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.tech}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
@@ -501,7 +468,7 @@ export default function Dashboard() {
                   <span className="text-rose-400 font-bold">🛡️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/95 leading-relaxed text-glow-cyan">{committeeReport.risk}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.risk}</p>
               </div>
 
               <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
@@ -509,10 +476,11 @@ export default function Dashboard() {
                   <span className="text-emerald-400 font-bold">⛓️</span>
                   <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
                 </div>
-                <p className="text-xs font-semibold text-white/95 leading-relaxed text-glow-cyan">{committeeReport.chain}</p>
+                <p className="text-xs font-semibold text-white/90 leading-relaxed">{committeeReport.chain}</p>
               </div>
             </div>
 
+            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
@@ -534,7 +502,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="space-y-4">
-                <p className="text-xs font-semibold text-white/95 leading-relaxed text-glow-cyan">
+                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">
                   <b>Synthesized Debate:</b> {committeeReport.debate}
                 </p>
                 <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
@@ -610,7 +578,7 @@ export default function Dashboard() {
               <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium">
                 <div>
                   <h3 className="text-sm font-extrabold text-white uppercase tracking-widest border-b border-white/5 pb-3 mb-4 text-glow-cyan">Detected Psychological Biases</h3>
-                  <p className="text-xs font-semibold text-white/95 leading-relaxed mb-4">{auditReport.evaluation}</p>
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed mb-4">{auditReport.evaluation}</p>
                   
                   <div className="flex flex-wrap gap-2 mb-4">
                     {auditReport.biases.map((bias, i) => (
@@ -622,7 +590,7 @@ export default function Dashboard() {
 
                   <div className="p-4 bg-rose-500/10 border border-rose-500/15 rounded-xl">
                     <p className="text-xs text-rose-300 font-bold">Critical Error:</p>
-                    <p className="text-xs font-semibold text-white/95 leading-relaxed mt-1">{auditReport.criticalMistake}</p>
+                    <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{auditReport.criticalMistake}</p>
                   </div>
                 </div>
 
@@ -649,7 +617,7 @@ export default function Dashboard() {
                   type="text"
                   value={strategyInput}
                   onChange={(e) => setStrategyInput(e.target.value)}
-                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-3 text-xs font-semibold text-white/95 w-full focus:outline-none focus:border-cyan-400 mt-2"
+                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-3 text-xs font-semibold text-white/90 w-full focus:outline-none focus:border-cyan-400 mt-2"
                 />
               </div>
               <button
@@ -711,7 +679,7 @@ export default function Dashboard() {
 
                 <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
                   <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-wider font-mono">Quant Verdict:</span>
-                  <p className="text-[10px] font-semibold text-white/95 leading-relaxed mt-1">{strategyReport.verdict}</p>
+                  <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{strategyReport.verdict}</p>
                 </div>
               </div>
             </div>
@@ -777,7 +745,7 @@ export default function Dashboard() {
                         <span className="text-cyan-400 font-bold mt-0.5">⚡</span>
                         <div>
                           <h5 className="text-xs font-extrabold text-white uppercase tracking-wider">{drv.event}</h5>
-                          <p className="text-[11px] font-semibold text-white/95 leading-relaxed mt-0.5">{drv.desc}</p>
+                          <p className="text-[11px] font-semibold text-white/90 leading-relaxed mt-0.5">{drv.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -786,7 +754,7 @@ export default function Dashboard() {
 
                 <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
                   <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Tactical Sentiment Advisory:</span>
-                  <p className="text-[10px] font-semibold text-white/95 leading-relaxed mt-1">{sentinelReport.tactical}</p>
+                  <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{sentinelReport.tactical}</p>
                 </div>
               </div>
             </div>
@@ -869,7 +837,7 @@ export default function Dashboard() {
 
                     <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
                       <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Justification Brief:</span>
-                      <p className="text-xs font-semibold text-white/95 leading-relaxed mt-1">{agentProposal.reason}</p>
+                      <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{agentProposal.reason}</p>
                     </div>
 
                     {/* Autopilot Control Card */}
