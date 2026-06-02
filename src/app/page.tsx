@@ -17,7 +17,9 @@ interface TradeProposal {
 // Redirect all Web dashboard fetches to your secure, long-running Render API Server
 const BACKEND_API_BASE = "https://asiwaju-trading-hub.onrender.com";
 
-// Helper to generate the shaded SVG paths
+// -------------------------------------------------------------
+// HELPER: DYNAMIC SVG COORDINATE MAPPER
+// -------------------------------------------------------------
 function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
   const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
   const points = 15;
@@ -154,6 +156,8 @@ export default function Dashboard() {
         body: JSON.stringify({ coin: coinInput })
       });
       const data = await response.json();
+      console.log("📊 [Diagnostic] War Room response:", data);
+      
       if (data.rating) {
         setCommitteeReport({
           rating: data.rating,
@@ -167,7 +171,7 @@ export default function Dashboard() {
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] War Room fetch failed:", err);
     } finally {
       setCommitteeLoading(false);
     }
@@ -179,6 +183,8 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { method: "POST" });
       const data = await response.json();
+      console.log("📊 [Diagnostic] Guardian response:", data);
+
       if (data.score) {
         setAuditReport({
           score: data.score,
@@ -189,7 +195,7 @@ export default function Dashboard() {
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] Guardian fetch failed:", err);
     } finally {
       setAuditLoading(false);
     }
@@ -205,6 +211,8 @@ export default function Dashboard() {
         body: JSON.stringify({ prompt: strategyInput })
       });
       const data = await response.json();
+      console.log("📊 [Diagnostic] Strategy Lab response:", data);
+
       if (data.winRate) {
         setStrategyReport({
           translation: data.translation,
@@ -218,7 +226,7 @@ export default function Dashboard() {
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] Strategy Lab fetch failed:", err);
     } finally {
       setStrategyLoading(false);
     }
@@ -230,6 +238,8 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/sentinel`, { method: "POST" });
       const data = await response.json();
+      console.log("📊 [Diagnostic] Sentinel response:", data);
+
       if (data.index) {
         setSentinelReport({
           index: data.index,
@@ -240,7 +250,7 @@ export default function Dashboard() {
         });
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] Sentinel fetch failed:", err);
     } finally {
       setSentinelLoading(false);
     }
@@ -253,6 +263,8 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${coinInput}`);
       const data = await response.json();
+      console.log("📊 [Diagnostic] Agent scan response:", data);
+
       if (data && data.symbol) {
         setAgentProposal(data);
       } else {
@@ -260,7 +272,7 @@ export default function Dashboard() {
         setExecutionMessage("⚪ Sentiment ranges. No high-probability setups detected.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] Agent scan fetch failed:", err);
     } finally {
       setAgentLoading(false);
     }
@@ -279,7 +291,8 @@ export default function Dashboard() {
         body: JSON.stringify(agentProposal)
       });
       const data = await response.json();
-      
+      console.log("📊 [Diagnostic] Trade execution response:", data);
+
       if (data.success) {
         setExecutionMessage(
           `🔒 [ShieldSDK] Prompt Security: ${data.promptSafety} ✅\n` +
@@ -291,7 +304,7 @@ export default function Dashboard() {
         setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ [Diagnostic] Trade execution fetch failed:", err);
       setExecutionMessage("❌ Exception during SDK routing. Auto-blocked.");
     } finally {
       setAgentLoading(false);
@@ -312,7 +325,8 @@ export default function Dashboard() {
           body: JSON.stringify({ coin: coinInput })
         });
         const data = await response.json();
-        
+        console.log("📊 [Diagnostic] Autopilot response:", data);
+
         if (data.success) {
           setExecutionMessage(
             `🤖 [Autopilot] Setup Verified! direct order dispatched.\n` +
@@ -323,7 +337,7 @@ export default function Dashboard() {
           setExecutionMessage(`🤖 [Autopilot] Scan complete. Safety abort status: ${data.message}`);
         }
       } catch (err) {
-        console.error(err);
+        console.error("❌ [Diagnostic] Autopilot fetch failed:", err);
         setExecutionMessage("❌ Exception during autopilot handshake loop.");
       }
     } else {
@@ -424,7 +438,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
+                  <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/25 rounded-xl text-center">
                     <div className="text-[10px] text-rose-300 uppercase tracking-widest">Rating</div>
                     <div className="text-sm font-extrabold text-rose-400">{committeeReport.rating}</div>
                   </div>
@@ -697,7 +711,7 @@ export default function Dashboard() {
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
                 <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>

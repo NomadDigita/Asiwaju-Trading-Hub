@@ -4,11 +4,11 @@ import 'dotenv/config';
 import http from 'http';
 import https from 'https';
 
-// Import our self-executing bot controllers
+// Import our bot controllers
 import { bot, convertMarkdownToTelegramHtml } from './bot';
 import { client } from './discord';
 
-// Import our core utility modules (Unified ES6 Imports)
+// Import our core utility modules (Strict ES6 Imports - No raw require blocks)
 import { runAutopilotExecution, scanMarketOpportunity, executeApprovedTrade } from './utils/agent';
 import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
@@ -61,6 +61,20 @@ async function getRequestBody(req: http.IncomingMessage): Promise<any> {
     req.on('error', err => reject(err));
   });
 }
+
+// Simulated emotional trade log to demonstrate system audit logic on empty wallets or geoblocks
+const MOCK_EMOTIONAL_LOG = [
+  { timestamp: "1780000000000", symbol: "SOLUSDT", side: "buy", price: "188.50", size: "15", notes: "Bought at local peak after a massive green hourly candle (FOMO)" },
+  { timestamp: "1780003600000", symbol: "SOLUSDT", side: "sell", price: "171.20", size: "15", notes: "Panic sold at a major loss during a temporary drop" },
+  { timestamp: "1780005400000", symbol: "SOLUSDT", side: "buy", price: "179.00", size: "30", notes: "Immediately re-entered with double the position size to claw back losses (Revenge trading)" },
+  { timestamp: "1780009000000", symbol: "SOLUSDT", side: "sell", price: "165.00", size: "30", notes: "Panic sold again at a larger loss as market continued down" }
+];
+
+const MOCK_NEWS_FEED = [
+  { source: "Bloomberg", headline: "Fed hints at potential rate cuts in upcoming Q3 meeting as inflation cools.", category: "Macro" },
+  { source: "Coindesk", headline: "Solana daily active wallets hit new record high amid meme coin volume surge.", category: "Crypto" },
+  { source: "Reuters", headline: "Major US investment bank files for spot Solana ETF, citing high institutional demand.", category: "Regulation" }
+];
 
 // Create CORS-enabled API Server to handle Web Dashboard requests
 const server = http.createServer(async (req, res) => {
@@ -158,7 +172,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 4. News Sentinel Endpoint (Returns structured JSON)
+    // 4. Sentinel News Endpoint (Returns structured JSON)
     if (url.pathname === '/api/sentinel' && req.method === 'POST') {
       const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
       Analyze the news feed.
