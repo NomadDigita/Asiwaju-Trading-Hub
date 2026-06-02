@@ -74,9 +74,9 @@ function parseStrategyReport(md: string) {
   
   const winMatch = md.match(/Win\s*Rate:\s*\*?\*?\s*([\d\.]+%?)/i);
   const tradesMatch = md.match(/Total\s*Trades\s*Executed:\s*\*?\s*(\d+)/i);
-  const pnlMatch = md.match(/Net\s*Profit\/Loss:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
-  const drawdownMatch = md.match(/Max\s*Drawdown:\s*\*?\*?\s*([\d\.\+\-%]+)/i);
-  const factorMatch = md.match(/Profit\s*Factor:\s*\*?\*?\s*([\d\.]+)/i);
+  const pnlMatch = md.match(/Net\s*Profit\/Loss:\s*\*?\s*([\d\.\+\-%]+)/i);
+  const drawdownMatch = md.match(/Max\s*Drawdown:\s*\*?\s*([\d\.\+\-%]+)/i);
+  const factorMatch = md.match(/Profit\s*Factor:\s*\*?\s*([\d\.]+)/i);
   
   const verdictMatch = md.match(/(?:Risk\s*Analyst\s*Verdict|Quant\s*Verdict):?\s*\n*([\s\S]*?)$/i);
 
@@ -97,10 +97,12 @@ function parseSentinelReport(md: string) {
   const ratingMatch = md.match(/Index:\s*\d+\/100\s*\((.*?)\)/i);
   const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
   
+  // Extract major drivers dynamically (Emoji-Free Parser)
   const drivers: { event: string; desc: string }[] = [];
   const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
   let match;
   
+  // Isolate scanner exclusively to the Drivers section bypassing any emoji strings
   const driversSection = md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
   
   if (driversSection) {
@@ -114,7 +116,7 @@ function parseSentinelReport(md: string) {
   return {
     index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
     rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
-    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving risk appetite.",
+    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving active market sentiment.",
     drivers: drivers.length > 0 ? drivers : [
       { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
     ],
@@ -163,7 +165,7 @@ export default function Dashboard() {
   const [coinInput, setCoinInput] = useState("SOL");
   const [strategyInput, setStrategyInput] = useState("Buy when RSI is below 30 on the 1h, sell on a 4% gain or 2% stop-loss");
   
-  // Independent loading states per tab
+  // Independent loading states per tab (Prevents concurrent loading glitches)
   const [committeeLoading, setCommitteeLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [strategyLoading, setStrategyLoading] = useState(false);
@@ -536,7 +538,7 @@ export default function Dashboard() {
         {/* TAB 2: GUARDIAN */}
         {activeTab === "guardian" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
                 <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
@@ -699,7 +701,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Sentinel News & Macro Analyst</h3>
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Sentinel News & Macro Analyst</h3>
                 <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
               </div>
               <button
