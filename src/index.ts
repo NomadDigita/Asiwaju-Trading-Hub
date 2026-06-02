@@ -3,6 +3,7 @@ import 'dotenv/config';
 
 import http from 'http';
 import https from 'https';
+import crypto from 'crypto';
 
 // Import our bot controllers
 import { bot, convertMarkdownToTelegramHtml } from './bot';
@@ -15,6 +16,9 @@ import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
 import { callUnifiedAI } from './utils/ai';
+
+// Import Shield SDK to validate and secure manual web-dashboard orders
+import { AsiwajuAgentShield } from './infra/ShieldSDK';
 
 // Global safeguards to prevent process crashes
 process.on('unhandledRejection', (reason, promise) => {
@@ -60,6 +64,29 @@ async function getRequestBody(req: http.IncomingMessage): Promise<any> {
     });
     req.on('error', err => reject(err));
   });
+}
+
+// Secure signature generation for Bitget API queries
+function getBitgetHeaders(method: string, requestPath: string, body = ''): Record<string, string> {
+  const apiKey = process.env.BITGET_API_KEY || '';
+  const secretKey = process.env.BITGET_SECRET_KEY || '';
+  const passphrase = process.env.BITGET_PASSPHRASE || '';
+
+  const timestamp = Date.now().toString();
+  const preHash = timestamp + method + requestPath + body;
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(preHash)
+    .digest('base64');
+
+  return {
+    'ACCESS-KEY': apiKey,
+    'ACCESS-SIGN': signature,
+    'ACCESS-TIMESTAMP': timestamp,
+    'ACCESS-PASSPHRASE': passphrase,
+    'locale': 'en-US',
+    'Content-Type': 'application/json'
+  };
 }
 
 // Simulated emotional trade log to demonstrate system audit logic on empty wallets or geoblocks
@@ -121,8 +148,34 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 2. Portfolio Audit Endpoint (Returns structured JSON)
+    // 2. Portfolio Audit Endpoint (Returns structured JSON based on live data)
     if (url.pathname === '/api/audit' && req.method === 'POST') {
+      let tradeLogPayload = "";
+
+      try {
+        // Interrogate Bitget Spot account trade history directly
+        const requestPath = '/api/v2/spot/trade/history-orders?limit=10';
+        const headers = getBitgetHeaders('GET', requestPath);
+        
+        const response = await fetch('https://api.bitget.com' + requestPath, {
+          method: 'GET',
+          headers: headers
+        });
+
+        const result = await response.json();
+
+        if (result.code === '00000' && Array.isArray(result.data) && result.data.length > 0) {
+          tradeLogPayload = JSON.stringify(result.data);
+          console.log("🛡️ [Guardian] Successfully retrieved live portfolio records.");
+        } else {
+          console.warn("🛡️ [Guardian] Spot order history empty or geoblocked. Engaging adaptive baseline log.");
+          tradeLogPayload = JSON.stringify(MOCK_EMOTIONAL_LOG);
+        }
+      } catch (err: any) {
+        console.warn("🛡️ [Guardian] Bitget API handshake exception:", err.message);
+        tradeLogPayload = JSON.stringify(MOCK_EMOTIONAL_LOG);
+      }
+
       const systemPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub.
       Analyze the user's trading log.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
@@ -138,7 +191,7 @@ const server = http.createServer(async (req, res) => {
         ]
       }`;
 
-      const rawReport = await callUnifiedAI(systemPrompt, `Analyze this trade log: ${JSON.stringify(MOCK_EMOTIONAL_LOG, null, 2)}`);
+      const rawReport = await callUnifiedAI(systemPrompt, `Analyze this trade log: ${tradeLogPayload}`);
       const parsed = sanitizeAndParseJson(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
@@ -172,8 +225,31 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 4. Sentinel News Endpoint (Returns structured JSON)
+    // 4. Sentinel News Endpoint (Returns live macro sentiment JSON)
     if (url.pathname === '/api/sentinel' && req.method === 'POST') {
+      let activeNewsPayload = "";
+
+      try {
+        // Fetch active news headlines directly from CryptoCompare's public API
+        const response = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+        const result = await response.json();
+
+        if (result && Array.isArray(result.Data) && result.Data.length > 0) {
+          const mappedNews = result.Data.slice(0, 5).map((article: any) => ({
+            source: article.source_info?.name || "Global Feed",
+            headline: article.title,
+            category: article.categories || "Crypto"
+          }));
+          activeNewsPayload = JSON.stringify(mappedNews);
+          console.log("📡 [Sentinel] Successfully fetched live CryptoCompare headlines.");
+        } else {
+          activeNewsPayload = JSON.stringify(MOCK_NEWS_FEED);
+        }
+      } catch (err: any) {
+        console.warn("⚠️ [Sentinel] News fetch failed, using fallback:", err.message);
+        activeNewsPayload = JSON.stringify(MOCK_NEWS_FEED);
+      }
+
       const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
       Analyze the news feed.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
@@ -189,13 +265,13 @@ const server = http.createServer(async (req, res) => {
         "tactical": "Tactical trading suggestions in 2 sentences"
       }`;
 
-      const rawReport = await callUnifiedAI(systemPrompt, `Analyze this news feed: ${JSON.stringify(MOCK_NEWS_FEED, null, 2)}`);
+      const rawReport = await callUnifiedAI(systemPrompt, `Analyze this news feed: ${activeNewsPayload}`);
       const parsed = sanitizeAndParseJson(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
     }
 
-    // 5. Agent Scan & Execute Endpoint
+    // 5. Agent Scan & Execute Endpoint (Protected via AAS SDK pipeline)
     if (url.pathname === '/api/agent') {
       if (req.method === 'GET') {
         const coin = url.searchParams.get("coin") || "SOL";
@@ -203,12 +279,60 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify(proposal || { message: "NO_SETUP" }));
       }
+      
       if (req.method === 'POST') {
         const proposal = await getRequestBody(req);
-        const executionResult = await executeApprovedTrade(proposal);
-        const [status, details] = executionResult.split(':');
+
+        if (!proposal || !proposal.symbol) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: "Invalid trade proposal payload." }));
+        }
+
+        // Map TradeProposal strings to numeric TradeRequest format expected by the Shield SDK
+        const tradeRequest = {
+          symbol: proposal.symbol,
+          side: proposal.side as 'buy' | 'sell',
+          price: parseFloat(proposal.price),
+          quantity: parseFloat(proposal.quantity)
+        };
+
+        // Secure trade execution using the Asiwaju Agent Shield SDK pipeline
+        const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+          proposal.reason || "Execute manual web-dashboard approved transaction.",
+          tradeRequest,
+          `web_sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` // Generate nonce transaction signature
+        );
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ success: status === 'SUCCESS', orderId: details }));
+        return res.end(JSON.stringify({
+          success: shieldReport.success,
+          promptSafety: shieldReport.promptSafety,
+          riskGuardrail: shieldReport.riskGuardrail,
+          orderId: shieldReport.orderId || null,
+          error: shieldReport.success ? undefined : shieldReport.message
+        }));
+      }
+    }
+
+    // 6. Autopilot Execution Endpoint (Prevents client-side JSON parsing failures)
+    if (url.pathname === '/api/autopilot' && req.method === 'POST') {
+      const { coin } = await getRequestBody(req);
+      const result = await runAutopilotExecution(coin);
+      const [status, symbol, side, price, details] = result.split(':');
+
+      if (status === 'EXECUTED') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ 
+          success: true, 
+          message: `Autopilot execution succeeded for ${symbol}`, 
+          orderId: details 
+        }));
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ 
+          success: false, 
+          message: result 
+        }));
       }
     }
 
