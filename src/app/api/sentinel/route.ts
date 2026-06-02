@@ -9,6 +9,23 @@ const MOCK_NEWS_FEED = [
   { source: "Reuters", headline: "Major US investment bank files for spot Solana ETF, citing high institutional demand.", category: "Regulation" }
 ];
 
+function sanitizeAndParseJson(rawText: string): any {
+  let cleanText = rawText
+    .replace(/^\`\`\`(json)?\n/, '')
+    .replace(/\`\`\`$/, '')
+    .trim();
+
+  const startIdx = cleanText.indexOf('{');
+  const endIdx = cleanText.lastIndexOf('}');
+
+  if (startIdx === -1 || endIdx === -1) {
+    throw new Error(`JSON Boundaries Missing. Raw: ${rawText.slice(0, 100)}`);
+  }
+
+  const jsonString = cleanText.slice(startIdx, endIdx + 1);
+  return JSON.parse(jsonString);
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
@@ -27,7 +44,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }`;
 
     const rawReport = await callUnifiedAI(systemPrompt, `Analyze this news feed: ${JSON.stringify(MOCK_NEWS_FEED, null, 2)}`);
-    const parsed = JSON.parse(rawReport);
+    const parsed = sanitizeAndParseJson(rawReport);
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("API Error in Sentinel Route:", error);

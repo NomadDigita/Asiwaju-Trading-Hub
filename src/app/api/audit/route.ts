@@ -10,6 +10,23 @@ const MOCK_EMOTIONAL_LOG = [
   { timestamp: "1780009000000", symbol: "SOLUSDT", side: "sell", price: "165.00", size: "30", notes: "Panic sold again at a larger loss as market continued down" }
 ];
 
+function sanitizeAndParseJson(rawText: string): any {
+  let cleanText = rawText
+    .replace(/^\`\`\`(json)?\n/, '')
+    .replace(/\`\`\`$/, '')
+    .trim();
+
+  const startIdx = cleanText.indexOf('{');
+  const endIdx = cleanText.lastIndexOf('}');
+
+  if (startIdx === -1 || endIdx === -1) {
+    throw new Error(`JSON Boundaries Missing. Raw: ${rawText.slice(0, 100)}`);
+  }
+
+  const jsonString = cleanText.slice(startIdx, endIdx + 1);
+  return JSON.parse(jsonString);
+}
+
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     const systemPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub.
@@ -28,7 +45,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }`;
 
     const rawReport = await callUnifiedAI(systemPrompt, `Analyze this trade log: ${JSON.stringify(MOCK_EMOTIONAL_LOG, null, 2)}`);
-    const parsed = JSON.parse(rawReport);
+    const parsed = sanitizeAndParseJson(rawReport);
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("API Error in Audit Route:", error);
