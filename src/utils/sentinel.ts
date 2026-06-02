@@ -13,7 +13,6 @@ interface NewsHeadline {
 async function fetchDynamicLiveNews(): Promise<NewsHeadline[]> {
   const tavilyKey = process.env.TAVILY_API_KEY;
   if (!tavilyKey) {
-    // If no Tavily key is configured, query a public unauthenticated feed like HackerNews Ask/Show stories
     try {
       const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
       const ids = await res.json();
