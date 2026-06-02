@@ -4,12 +4,16 @@ import 'dotenv/config';
 import http from 'http';
 import https from 'https';
 
-// Import our bot controllers
+// Import our self-executing bot controllers
 import { bot, convertMarkdownToTelegramHtml } from './bot';
 import { client } from './discord';
 
-// Import our core utility modules
-import { runAutopilotExecution } from './utils/agent';
+// Import our core utility modules (Unified ES6 Imports)
+import { runAutopilotExecution, scanMarketOpportunity, executeApprovedTrade } from './utils/agent';
+import { runInvestmentCommittee } from './utils/committee';
+import { runBehavioralAudit } from './utils/guardian';
+import { generateStrategyAndBacktest } from './utils/lab';
+import { runNewsAudit } from './utils/sentinel';
 import { callUnifiedAI } from './utils/ai';
 
 // Global safeguards to prevent process crashes
@@ -195,14 +199,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/agent') {
       if (req.method === 'GET') {
         const coin = url.searchParams.get("coin") || "SOL";
-        const { scanMarketOpportunity } = require('./utils/agent');
         const proposal = await scanMarketOpportunity(coin);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify(proposal || { message: "NO_SETUP" }));
       }
       if (req.method === 'POST') {
         const proposal = await getRequestBody(req);
-        const { executeApprovedTrade } = require('./utils/agent');
         const executionResult = await executeApprovedTrade(proposal);
         const [status, details] = executionResult.split(':');
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -224,7 +226,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`📡 Render API Server active on port ${PORT}. Bots are operational.`);
 
-  // Keep-Alive Self-Ping Loop (Every 10 minutes)
+  // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping
   setInterval(() => {
     if (RENDER_URL) {
       console.log(`🛰️ Keep-Alive: Pinging self at ${RENDER_URL}...`);
@@ -236,7 +238,7 @@ server.listen(PORT, () => {
     }
   }, 10 * 60 * 1000);
 
-  // Autonomous Portfolio Scanner Loop (Every 10 minutes)
+  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
     try {

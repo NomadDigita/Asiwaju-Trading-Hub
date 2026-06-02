@@ -3,6 +3,7 @@ dotenv.config();
 
 import { getBitgetHeaders } from './bitget';
 import { runNewsAudit } from './sentinel';
+import { callUnifiedAI } from './ai';
 
 export interface TradeProposal {
   symbol: string;
@@ -22,7 +23,7 @@ async function getLivePrice(symbol: string): Promise<string> {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
       const data = await res.json();
       if (data && data.price) {
-        return parseFloat(data.price).toString();
+        return parseFloat(data.price).toString(); // Returns latest spot price dynamically
       }
     } catch (e) {
       console.warn("⚠️ Public price feed failed. Using baseline parameters.");
@@ -59,7 +60,7 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   let sentimentSummary = "Macro indicators ranging.";
   try {
     const sentinelData = await runNewsAudit();
-    sentimentSummary = sentinelData.slice(0, 500); // Feed a snippet of the news digest to the agent
+    sentimentSummary = sentinelData.slice(0, 500); 
   } catch (err) {
     console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone.");
   }
@@ -84,7 +85,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   If no clear setup exists, return the text: "NO_SETUP"`;
 
   try {
-    const { callUnifiedAI } = require('./ai');
     const resultText = await callUnifiedAI(agentBrainPrompt, `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}`);
 
     if (resultText === "NO_SETUP" || !resultText.startsWith("{")) {
