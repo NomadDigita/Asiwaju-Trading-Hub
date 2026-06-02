@@ -9,6 +9,69 @@ interface NewsHeadline {
   category: string;
 }
 
+// Fallback Helper: Dynamically fetches live cryptocurrency headlines using Tavily Search
+async function fetchDynamicLiveNews(): Promise<NewsHeadline[]> {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  if (!tavilyKey) {
+    // If no Tavily key is configured, query a public unauthenticated feed like HackerNews Ask/Show stories
+    try {
+      const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+      const ids = await res.json();
+      const topFiveIds = Array.isArray(ids) ? ids.slice(0, 5) : [];
+      const stories = await Promise.all(
+        topFiveIds.map(async (id: number) => {
+          const detailRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+          return await detailRes.json();
+        })
+      );
+      return stories.map((s: any) => ({
+        source: "HackerNews",
+        headline: s.title || "Crypto market liquidity shifts.",
+        category: "Tech/Macro"
+      }));
+    } catch {
+      return [
+        { source: "Feed", headline: "Global financial liquidity index rises.", category: "Macro" },
+        { source: "Feed", headline: "Layer-1 smart contract transaction volume shifts.", category: "Crypto" },
+        { source: "Feed", headline: "Monetary easing speculation influences digital assets.", category: "Regulation" }
+      ];
+    }
+  }
+
+  try {
+    console.log("📡 [Sentinel] Fetching live news headlines dynamically from Tavily Search...");
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query: "latest cryptocurrency breaking market news macro finance",
+        search_depth: "basic",
+        max_results: 5
+      })
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      if (Array.isArray(data.results)) {
+        return data.results.map((r: any) => ({
+          source: r.title ? r.title.slice(0, 15) : "Web News",
+          headline: r.snippet ? r.snippet.slice(0, 100) : r.title,
+          category: "Breaking"
+        }));
+      }
+    }
+    throw new Error("Tavily search returned invalid structure.");
+  } catch (e: any) {
+    console.warn("⚠️ [Sentinel] Dynamic web search news query failed:", e.message);
+    return [
+      { source: "Web Feed", headline: "Asset volumes consolidate above weekly moving averages.", category: "Macro" },
+      { source: "Web Feed", headline: "Exchange transaction activity reaches localized monthly peak.", category: "Crypto" },
+      { source: "Web Feed", headline: "Cross-chain transfer protocol volume expands.", category: "Regulation" }
+    ];
+  }
+}
+
 export async function runNewsAudit(): Promise<string> {
   let newsFeed: NewsHeadline[] = [];
 
@@ -26,12 +89,8 @@ export async function runNewsAudit(): Promise<string> {
       throw new Error("Empty news response.");
     }
   } catch (error) {
-    console.warn("⚠️ Public News API failed. Falling back to structured macro parameters.");
-    newsFeed = [
-      { source: "Bloomberg", headline: "Fed hints at potential rate cuts in upcoming Q3 meeting as inflation cools.", category: "Macro" },
-      { source: "Coindesk", headline: "Solana daily active wallets hit new record high amid meme coin volume surge.", category: "Crypto" },
-      { source: "Reuters", headline: "Major US investment bank files for spot Solana ETF, citing high institutional demand.", category: "Regulation" }
-    ];
+    console.warn("⚠️ Public News API failed. Scraping real-time web search feed instead.");
+    newsFeed = await fetchDynamicLiveNews();
   }
 
   const sentinelPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub. 

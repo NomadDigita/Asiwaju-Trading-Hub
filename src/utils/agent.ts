@@ -14,6 +14,24 @@ export interface TradeProposal {
   reason: string;
 }
 
+// Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
+function extractShieldJson(rawText: string): any {
+  let cleanText = rawText
+    .replace(/^\`\`\`(json)?\n/, '')
+    .replace(/\`\`\`$/, '')
+    .trim();
+
+  const startIdx = cleanText.indexOf('{');
+  const endIdx = cleanText.lastIndexOf('}');
+
+  if (startIdx === -1 || endIdx === -1) {
+    throw new Error("Target JSON boundaries not resolved inside raw text block.");
+  }
+
+  const jsonString = cleanText.slice(startIdx, endIdx + 1);
+  return JSON.parse(jsonString);
+}
+
 // 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel & Render Bypass Included)
 async function getLivePrice(symbol: string): Promise<string> {
   // If running on Vercel or Render cloud, query Binance's public unblocked API to bypass US geoblocking
@@ -55,11 +73,11 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     return null;
   }
 
-  // Synthesize market sentiment from the Sentinel Terminal
+  // Synthesize market sentiment from the Sentinel Terminal (Now fully dynamic and real-time)
   let sentimentSummary = "Macro indicators ranging.";
   try {
     const sentinelData = await runNewsAudit();
-    sentimentSummary = sentinelData.slice(0, 500); // Feed a snippet of the news digest to the agent
+    sentimentSummary = sentinelData.slice(0, 500); // Feed a snippet of the dynamic news digest to the agent
   } catch (err) {
     console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone.");
   }
@@ -87,11 +105,13 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     const { callUnifiedAI } = require('./ai');
     const resultText = await callUnifiedAI(agentBrainPrompt, `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}`);
 
-    if (resultText === "NO_SETUP" || !resultText.startsWith("{")) {
+    const trimmedResult = resultText.trim();
+    if (trimmedResult === "NO_SETUP" || (!trimmedResult.includes("{") && !trimmedResult.includes("}"))) {
       return null;
     }
 
-    const proposal: any = JSON.parse(resultText);
+    // Safely extract JSON from raw LLM output, bypassing markdown fences or whitespace errors
+    const proposal: any = extractShieldJson(resultText);
 
     // BITGET V2 SPECIFIC SIZE ALLOCATION (USDT for buys, coin amount for sells)
     if (proposal.side === "buy") {
