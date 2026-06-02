@@ -37,7 +37,7 @@ function extractShieldJson(rawText: string): any {
 
 // 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel & Render Bypass Included)
 async function getLivePrice(symbol: string): Promise<string> {
-  console.log(`🔍 [DIAGNOSTIC] perception check: Pulling live pricing feed for ${symbol}...`);
+  console.log(`🔍 [DIAGNOSTIC] Perception check: Pulling live pricing feed for ${symbol}...`);
   if (process.env.VERCEL || process.env.RENDER) {
     try {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
@@ -93,21 +93,23 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   const apiKey = process.env.QWEN_API_KEY;
   if (!apiKey) throw new Error("QWEN_API_KEY is missing from environment variables.");
 
+  // Updated Prompt: Removed the NO_SETUP escape condition to enforce trade generation
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
   Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
-  and determine if a high-probability trading opportunity exists.
+  and formulate the single highest-probability tactical setup (buy or sell) for ${symbol}.
   
-  If an opportunity is found, you MUST return a valid JSON object matching this structure (and absolutely no other text, conversational wrapper, or markdown syntax):
+  Even in ranging, neutral, or consolidation environments, identify localized support/resistance lines, 
+  order-book volume imbalances, or short-term trends to build a valid tactical proposal. 
+  
+  You MUST return a valid JSON object matching this structure (and absolutely no other text, conversational wrapper, or markdown syntax):
   {
     "symbol": "${symbol}",
     "side": "buy",
     "price": "${livePrice}",
     "stopLoss": "[Calculate 2.5% stop-loss level]",
     "takeProfit": "[Calculate 5% take-profit level]",
-    "reason": "[One sentence technical/sentiment justification]"
-  }
-  
-  If no clear setup exists, return the text: "NO_SETUP"`;
+    "reason": "[One sentence technical/sentiment tactical justification]"
+  }`;
 
   try {
     const { callUnifiedAI } = require('./ai');
@@ -117,8 +119,8 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     const trimmedResult = resultText.trim();
     console.log(`🧠 [DIAGNOSTIC] Gateway returned content length: ${trimmedResult.length} characters.`);
 
-    if (trimmedResult === "NO_SETUP" || (!trimmedResult.includes("{") && !trimmedResult.includes("}"))) {
-      console.log(`⚪ [DIAGNOSTIC] AI resolved NO_SETUP for ${symbol}. Execution safely aborted.`);
+    if (!trimmedResult.includes("{") || !trimmedResult.includes("}")) {
+      console.log(`⚪ [DIAGNOSTIC] AI response lacks structured brackets. Aborting.`);
       return null;
     }
 
@@ -136,7 +138,7 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     return proposal as TradeProposal;
   } catch (error: any) {
     console.error("❌ [DIAGNOSTIC] Exception in Agentic decision matrix:", error.message);
-    throw error; // Re-throw to route controllers for client-side visibility
+    throw error; 
   }
 }
 
