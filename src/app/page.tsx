@@ -17,149 +17,6 @@ interface TradeProposal {
 // Redirect all Web dashboard fetches to your secure, long-running Render API Server
 const BACKEND_API_BASE = "https://asiwaju-trading-hub.onrender.com";
 
-// -------------------------------------------------------------
-// AI MARKDOWN PARSERS (Completely Null-Safe & Indentation-Resilient)
-// -------------------------------------------------------------
-
-function parseCommitteeReport(md: string) {
-  const ratingMatch = md.match(/\*\s*\*\*Rating:\*\*\s*(.*)/i);
-  const scoreMatch = md.match(/\*\s*\*\*Confidence Score:\*\*\s*(.*)/i);
-  const triggerMatch = md.match(/\*\s*\*\*Primary Action Trigger:\*\*\s*(.*)/i);
-  
-  const techMatch = md.match(/Technical\s*(?:View|Perspectives?):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Risk\s*Manager)/i);
-  const riskMatch = md.match(/(?:Risk\s*Manager\s*Warning|Risk\s*Warning):?\s*\*?\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*On-Chain)/i);
-  const chainMatch = md.match(/On-Chain\s*(?:Signal|Activity|Perspectives?):?\s*\*?\s*([\s\S]*?)(?=\n\s*\*\s*|\n\s*#|\n\s*🧠|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
-  
-  const debateMatch = md.match(/(?:Debate\s*&\s*Consensus):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*📌|\n\s*Committee\s*Verdict)/i);
-  const reasoningMatch = md.match(/(?:Proof\s*of\s*Reasoning|Chain-of-Thought):?\s*\n*([\s\S]*?)(?=\n\s*#|\n\s*⚖️|\n\s*📌|\n\s*Debate)/i);
-
-  return {
-    rating: ratingMatch ? ratingMatch[1].trim() : "HOLD",
-    score: scoreMatch ? scoreMatch[1].trim() : "6/10",
-    trigger: triggerMatch ? triggerMatch[1].trim() : "Awaiting signal...",
-    tech: techMatch ? techMatch[1].trim() : "Technical parameters active.",
-    risk: riskMatch ? riskMatch[1].trim() : "Risk threshold evaluation active.",
-    chain: chainMatch ? chainMatch[1].trim() : "Exchange flow monitoring active.",
-    debate: debateMatch ? debateMatch[1].trim() : "The committee notes high-conviction fundamental signals with near-term caution.",
-    reasoning: reasoningMatch ? reasoningMatch[1].trim() : "1. Deconstructing Inputs: Isolated technical momentum setups."
-  };
-}
-
-function parseAuditReport(md: string) {
-  const scoreMatch = md.match(/Score:\s*(\d+)/i);
-  const evaluationMatch = md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*###/i) || md.match(/Score:.*\s*\n*([\s\S]*?)\n*\n*🔍/i);
-  const biasesMatch = md.match(/(?:Biases\s*Identified|Psychological\s*Biases):?\s*\*?\s*(.*)/i);
-  const mistakesMatch = md.match(/(?:Critical\s*Mistakes|Worst\s*Trade):?\s*\*?\s*(.*)/i);
-
-  const adj1Match = md.match(/1\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
-  const adj2Match = md.match(/2\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
-  const adj3Match = md.match(/3\.\s*\*\*(.*?)\*\*:\s*(.*)/i);
-
-  return {
-    score: scoreMatch ? parseInt(scoreMatch[1], 10) || 25 : 25,
-    evaluation: evaluationMatch ? evaluationMatch[1].trim() : "Trading patterns analysis concluded successfully.",
-    biases: biasesMatch ? biasesMatch[1].split(',').map(s => s.trim()) : ["FOMO", "Revenge Trading"],
-    criticalMistake: mistakesMatch ? mistakesMatch[1].trim() : "Behavioral execution limits exceeded on drawdown.",
-    adjustments: [
-      { title: adj1Match ? adj1Match[1] : "Planning", desc: adj1Match ? adj1Match[2] : "Define entry and stop-loss limits before executing." },
-      { title: adj2Match ? adj2Match[1] : "Cool-Off", desc: adj2Match ? adj2Match[2] : "Implement a mandatory break after any drawdown." },
-      { title: adj3Match ? adj3Match[1] : "Sizing", desc: adj3Match ? adj3Match[2] : "Risk a fixed ratio of capital per execution." }
-    ]
-  };
-}
-
-function parseStrategyReport(md: string) {
-  const translationMatch = md.match(/(?:Strategy\s*Translation):?\s*\n*([\s\S]*?)\n*\n*###/i);
-  const codeMatch = md.match(/\`\`\`python([\s\S]*?)\`\`\`/i);
-  
-  const winMatch = md.match(/Win\s*Rate:\s*\*?\*?\s*([\d\.]+%?)/i);
-  const tradesMatch = md.match(/Total\s*Trades\s*Executed:\s*\*?\s*(\d+)/i);
-  const pnlMatch = md.match(/Net\s*Profit\/Loss:\s*\*?\s*([\d\.\+\-%]+)/i);
-  const drawdownMatch = md.match(/Max\s*Drawdown:\s*\*?\s*([\d\.\+\-%]+)/i);
-  const factorMatch = md.match(/Profit\s*Factor:\s*\*?\s*([\d\.]+)/i);
-  
-  const verdictMatch = md.match(/(?:Risk\s*Analyst\s*Verdict|Quant\s*Verdict):?\s*\n*([\s\S]*?)$/i);
-
-  return {
-    translation: translationMatch ? translationMatch[1].trim() : "Logical execution translation resolved.",
-    code: codeMatch ? codeMatch[1].trim() : "import pandas as pd\n# No compiled script returned.",
-    winRate: winMatch ? winMatch[1].trim() : "50.0%",
-    trades: tradesMatch ? tradesMatch[1].trim() : "2",
-    pnl: pnlMatch ? pnlMatch[1].trim() : "+2.0%",
-    drawdown: drawdownMatch ? drawdownMatch[1].trim() : "-3.0%",
-    factor: factorMatch ? factorMatch[1].trim() : "1.67",
-    verdict: verdictMatch ? verdictMatch[1].trim() : "Quantitative metrics are constructive but require historical confirmation."
-  };
-}
-
-function parseSentinelReport(md: string) {
-  const indexMatch = md.match(/Index:\s*(\d+)/i);
-  const ratingMatch = md.match(/Index:\s*\d+\/100\s*\((.*?)\)/i);
-  const macroMatch = md.match(/Index:.*?\n*([\s\S]*?)\n*\n*###/i);
-  
-  // Extract major drivers dynamically (Emoji-Free Parser)
-  const drivers: { event: string; desc: string }[] = [];
-  const driverPattern = /\*\s*\*\*(.*?)\*\*:\s*(.*)/g;
-  let match;
-  
-  // Isolate scanner exclusively to the Drivers section bypassing any emoji strings
-  const driversSection = md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)###/i) || md.match(/Major\s*Sentiment\s*Drivers:([\s\S]*?)$/i);
-  
-  if (driversSection) {
-    while ((match = driverPattern.exec(driversSection[1])) !== null) {
-      drivers.push({ event: match[1].trim(), desc: match[2].trim() });
-    }
-  }
-
-  const tacticalMatch = md.match(/(?:Tactical\s*Trade\s*Suggestion|Tactical\s*Sentiment\s*Advisory):?\s*\n*([\s\S]*?)$/i);
-
-  return {
-    index: indexMatch ? parseInt(indexMatch[1], 10) || 92 : 92,
-    rating: ratingMatch ? ratingMatch[1].trim() : "Extreme FOMO",
-    macro: macroMatch ? macroMatch[1].trim() : "Liquidity shifts are driving active market sentiment.",
-    drivers: drivers.length > 0 ? drivers : [
-      { event: "Liquidity Expansion", desc: "Sideline stablecoin reserves are rotating into majors." }
-    ],
-    tactical: tacticalMatch ? tacticalMatch[1].trim() : "Manage trailing risk levels tightly."
-  };
-}
-
-function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-  const points = 15;
-  const coords: { x: number; y: number }[] = [];
-  let currentVal = 100;
-  const targetVal = 100 + (pnl * 3);
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    if (i === 0) {
-      currentVal = 100;
-    } else if (i === points - 1) {
-      currentVal = targetVal;
-    } else {
-      const progress = i / (points - 1);
-      const expectedVal = 100 + ((targetVal - 100) * progress);
-      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-      currentVal = expectedVal + wave;
-    }
-    const minVal = 70;
-    const maxVal = 135;
-    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-  }
-  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-}
-
-function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-  const linePath = generateSvgPath(pnlPercentStr, width, height);
-  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-}
-
-// -------------------------------------------------------------
-// MAIN DASHBOARD COMPONENT
-// -------------------------------------------------------------
-
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("committee");
   const [coinInput, setCoinInput] = useState("SOL");
@@ -250,6 +107,39 @@ export default function Dashboard() {
     return () => clearInterval(pulseTimer);
   }, []);
 
+  // Helpers to generate SVG path
+  function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+    const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+    const points = 15;
+    const coords: { x: number; y: number }[] = [];
+    let currentVal = 100;
+    const targetVal = 100 + (pnl * 3);
+
+    for (let i = 0; i < points; i++) {
+      const x = (i / (points - 1)) * width;
+      if (i === 0) {
+        currentVal = 100;
+      } else if (i === points - 1) {
+        currentVal = targetVal;
+      } else {
+        const progress = i / (points - 1);
+        const expectedVal = 100 + ((targetVal - 100) * progress);
+        const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+        currentVal = expectedVal + wave;
+      }
+      const minVal = 70;
+      const maxVal = 135;
+      const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+      coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+    }
+    return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  }
+
+  function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+    const linePath = generateSvgPath(pnlPercentStr, width, height);
+    return `${linePath} L ${width} ${height} L 0 ${height} Z`;
+  }
+
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
     setCommitteeLoading(true);
@@ -260,8 +150,17 @@ export default function Dashboard() {
         body: JSON.stringify({ coin: coinInput })
       });
       const data = await response.json();
-      if (data.report) {
-        setCommitteeReport(parseCommitteeReport(data.report));
+      if (data.rating) {
+        setCommitteeReport({
+          rating: data.rating,
+          score: data.score,
+          trigger: data.trigger,
+          tech: data.tech,
+          risk: data.risk,
+          chain: data.chain,
+          debate: data.debate,
+          reasoning: data.reasoning
+        });
       }
     } catch (err) {
       console.error(err);
@@ -276,8 +175,14 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { method: "POST" });
       const data = await response.json();
-      if (data.report) {
-        setAuditReport(parseAuditReport(data.report));
+      if (data.score) {
+        setAuditReport({
+          score: data.score,
+          evaluation: data.evaluation,
+          biases: data.biases,
+          criticalMistake: data.criticalMistake,
+          adjustments: data.adjustments
+        });
       }
     } catch (err) {
       console.error(err);
@@ -296,8 +201,17 @@ export default function Dashboard() {
         body: JSON.stringify({ prompt: strategyInput })
       });
       const data = await response.json();
-      if (data.report) {
-        setStrategyReport(parseStrategyReport(data.report));
+      if (data.winRate) {
+        setStrategyReport({
+          translation: data.translation,
+          code: data.code,
+          winRate: data.winRate,
+          trades: data.trades,
+          pnl: data.pnl,
+          drawdown: data.drawdown,
+          factor: data.factor,
+          verdict: data.verdict
+        });
       }
     } catch (err) {
       console.error(err);
@@ -312,8 +226,14 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/sentinel`, { method: "POST" });
       const data = await response.json();
-      if (data.report) {
-        setSentinelReport(parseSentinelReport(data.report));
+      if (data.index) {
+        setSentinelReport({
+          index: data.index,
+          rating: data.rating,
+          macro: data.macro,
+          drivers: data.drivers,
+          tactical: data.tactical
+        });
       }
     } catch (err) {
       console.error(err);
@@ -490,7 +410,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Live Consensus & Collapsible Proof of Reasoning */}
             <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
                 <div className="flex items-center gap-3">
