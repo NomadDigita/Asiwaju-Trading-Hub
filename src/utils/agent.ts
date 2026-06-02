@@ -16,6 +16,7 @@ export interface TradeProposal {
 
 // Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
 function extractShieldJson(rawText: string): any {
+  console.log("🔍 [DIAGNOSTIC] Extracting JSON boundary coordinates...");
   let cleanText = rawText
     .replace(/^\`\`\`(json)?\n/, '')
     .replace(/\`\`\`$/, '')
@@ -25,25 +26,28 @@ function extractShieldJson(rawText: string): any {
   const endIdx = cleanText.lastIndexOf('}');
 
   if (startIdx === -1 || endIdx === -1) {
+    console.error("❌ [DIAGNOSTIC] JSON coordinates missing in raw payload:", rawText);
     throw new Error("Target JSON boundaries not resolved inside raw text block.");
   }
 
   const jsonString = cleanText.slice(startIdx, endIdx + 1);
+  console.log("🔍 [DIAGNOSTIC] Isolated JSON substring successfully. Compiling object...");
   return JSON.parse(jsonString);
 }
 
 // 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel & Render Bypass Included)
 async function getLivePrice(symbol: string): Promise<string> {
-  // If running on Vercel or Render cloud, query Binance's public unblocked API to bypass US geoblocking
+  console.log(`🔍 [DIAGNOSTIC] perception check: Pulling live pricing feed for ${symbol}...`);
   if (process.env.VERCEL || process.env.RENDER) {
     try {
       const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
       const data = await res.json();
       if (data && data.price) {
+        console.log(`🔍 [DIAGNOSTIC] Pricing check: Binance API resolved ${symbol} at $${data.price}`);
         return parseFloat(data.price).toString();
       }
-    } catch (e) {
-      console.warn("⚠️ Public price feed failed. Using baseline parameters.");
+    } catch (e: any) {
+      console.warn("⚠️ Public price feed failed. Using baseline parameters:", e.message);
     }
     return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
   }
@@ -53,11 +57,12 @@ async function getLivePrice(symbol: string): Promise<string> {
     const response = await fetch('https://api.bitget.com' + requestPath);
     const result = await response.json();
     if (result.code === '00000' && Array.isArray(result.data) && result.data[0]) {
-      return result.data[0].lastPr; // Returns latest transaction price
+      console.log(`🔍 [DIAGNOSTIC] Pricing check: Bitget Spot V2 resolved ${symbol} at $${result.data[0].lastPr}`);
+      return result.data[0].lastPr;
     }
     return "0.0";
-  } catch (error) {
-    console.error("Error fetching live price:", error);
+  } catch (error: any) {
+    console.error("❌ [DIAGNOSTIC] Error fetching live price:", error.message);
     return "0.0";
   }
 }
@@ -65,6 +70,8 @@ async function getLivePrice(symbol: string): Promise<string> {
 // 2. Decision Layer: Scan market and generate trade proposals
 export async function scanMarketOpportunity(coin: string): Promise<TradeProposal | null> {
   const symbol = `${coin.toUpperCase()}USDT`;
+  console.log(`🔍 [DIAGNOSTIC] Initiating scanMarketOpportunity for ${symbol}...`);
+  
   const livePrice = await getLivePrice(symbol);
   const priceNum = parseFloat(livePrice);
   
@@ -73,13 +80,14 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     return null;
   }
 
-  // Synthesize market sentiment from the Sentinel Terminal (Now fully dynamic and real-time)
+  console.log(`🔍 [DIAGNOSTIC] Querying Sentinel for dynamic market sentiment feedstock...`);
   let sentimentSummary = "Macro indicators ranging.";
   try {
     const sentinelData = await runNewsAudit();
-    sentimentSummary = sentinelData.slice(0, 500); // Feed a snippet of the dynamic news digest to the agent
-  } catch (err) {
-    console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone.");
+    sentimentSummary = sentinelData.slice(0, 500);
+    console.log(`🔍 [DIAGNOSTIC] Sentinel context feed retrieved: "${sentimentSummary.slice(0, 100)}..."`);
+  } catch (err: any) {
+    console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone:", err.message);
   }
 
   const apiKey = process.env.QWEN_API_KEY;
@@ -103,42 +111,46 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
   try {
     const { callUnifiedAI } = require('./ai');
+    console.log(`🧠 [DIAGNOSTIC] Sending prompt payload to AI Completions gateway...`);
     const resultText = await callUnifiedAI(agentBrainPrompt, `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}`);
 
     const trimmedResult = resultText.trim();
+    console.log(`🧠 [DIAGNOSTIC] Gateway returned content length: ${trimmedResult.length} characters.`);
+
     if (trimmedResult === "NO_SETUP" || (!trimmedResult.includes("{") && !trimmedResult.includes("}"))) {
+      console.log(`⚪ [DIAGNOSTIC] AI resolved NO_SETUP for ${symbol}. Execution safely aborted.`);
       return null;
     }
 
-    // Safely extract JSON from raw LLM output, bypassing markdown fences or whitespace errors
     const proposal: any = extractShieldJson(resultText);
 
     // BITGET V2 SPECIFIC SIZE ALLOCATION (USDT for buys, coin amount for sells)
     if (proposal.side === "buy") {
-      proposal.quantity = "5.0000"; // Market Buy size represents Quote Coin (USDT)
+      proposal.quantity = "5.0000"; 
     } else {
-      const quantityNum = 5 / priceNum; // Market Sell size represents Base Coin (SOL/BTC)
+      const quantityNum = 5 / priceNum;
       proposal.quantity = quantityNum.toFixed(4);
     }
 
+    console.log(`🎯 [DIAGNOSTIC] Active TradeProposal resolved successfully for ${symbol}. Mapping parameters...`);
     return proposal as TradeProposal;
-  } catch (error) {
-    console.error("Error in Agentic decision matrix:", error);
-    return null;
+  } catch (error: any) {
+    console.error("❌ [DIAGNOSTIC] Exception in Agentic decision matrix:", error.message);
+    throw error; // Re-throw to route controllers for client-side visibility
   }
 }
 
 // 3. Action Layer: Execute order on Bitget V2 API (Spot Market Order)
 export async function executeApprovedTrade(proposal: TradeProposal): Promise<string> {
   const requestPath = '/api/v2/spot/trade/place-order';
+  console.log(`🔍 [DIAGNOSTIC] Action check: Executing Spot Market Order for ${proposal.symbol}...`);
   
-  // Construct precise market order body using the correct parameter 'size'
   const body = JSON.stringify({
     symbol: proposal.symbol,
-    side: proposal.side, // 'buy' or 'sell'
+    side: proposal.side, 
     orderType: 'market',
-    size: proposal.quantity, // Correct V2 parameter name 'size' mapped here
-    clientOid: `asiwaju_${Date.now()}` // Unique client ID
+    size: proposal.quantity, 
+    clientOid: `asiwaju_${Date.now()}` 
   });
 
   const headers = getBitgetHeaders('POST', requestPath, body);
@@ -153,14 +165,14 @@ export async function executeApprovedTrade(proposal: TradeProposal): Promise<str
     const result = await response.json();
 
     if (result.code === '00000' && result.data) {
-      console.log(`🎯 Trade executed successfully. Order ID: ${result.data.orderId}`);
+      console.log(`🎯 [DIAGNOSTIC] Bitget Spot order accepted. Order ID: ${result.data.orderId}`);
       return `SUCCESS:${result.data.orderId}`;
     } else {
-      console.error(`❌ Order placement failed: ${result.msg}`);
+      console.error(`❌ [DIAGNOSTIC] Bitget order rejected: ${result.msg}`);
       return `FAILED:${result.msg}`;
     }
   } catch (error: any) {
-    console.error("❌ Exception during trade execution:", error);
+    console.error("❌ [DIAGNOSTIC] Exception during order placement:", error.message);
     return `ERROR:${error.message || 'Connection timeout'}`;
   }
 }
@@ -179,7 +191,7 @@ export async function runAutopilotExecution(specificCoin?: string): Promise<stri
       }
 
       // Set autonomous safety parameters
-      const confidenceScore = 9; // High-conviction score simulated by scanning parameters
+      const confidenceScore = 9; 
       const MIN_CONFIDENCE_REQUIRED = 8;
 
       if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {

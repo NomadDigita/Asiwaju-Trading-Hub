@@ -233,11 +233,12 @@ const server = http.createServer(async (req, res) => {
         tradeLogPayload = JSON.stringify(dynamicFills);
       }
 
+      // Updated Prompt: Removed the hardcoded score "25" from formatting instructions
       const systemPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub.
       Analyze the user's trading log.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
       {
-        "score": 25,
+        "score": [Compute an integer score between 0 and 100 representing behavioral discipline based on the trade log],
         "evaluation": "Sincere behavioral evaluation in 2 sentences",
         "biases": ["FOMO", "Revenge Trading", "Panic Selling"],
         "criticalMistake": "Describe the worst transaction mistake in 1 sentence",
@@ -308,12 +309,13 @@ const server = http.createServer(async (req, res) => {
         activeNewsPayload = JSON.stringify(dynamicNews);
       }
 
+      // Updated Prompt: Removed hardcoded index "92" and placeholder strings from instructions
       const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
       Analyze the news feed.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
       {
-        "index": 92,
-        "rating": "Extreme FOMO, Extreme FUD, or Neutral",
+        "index": [Compute an integer score between 0 and 100 based on your news analysis],
+        "rating": "[Resolve to exactly: Extreme FOMO, Extreme FUD, or Neutral]",
         "macro": "Macro analysis summary in 2 sentences",
         "drivers": [
           { "event": "Event 1 Name", "desc": "Impact description in 1 sentence" },

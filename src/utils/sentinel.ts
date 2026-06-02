@@ -65,8 +65,7 @@ async function fetchDynamicLiveNews(): Promise<NewsHeadline[]> {
     console.warn("⚠️ [Sentinel] Dynamic web search news query failed:", e.message);
     return [
       { source: "Web Feed", headline: "Asset volumes consolidate above weekly moving averages.", category: "Macro" },
-      { source: "Web Feed", headline: "Exchange transaction activity reaches localized monthly peak.", category: "Crypto" },
-      { source: "Web Feed", headline: "Cross-chain transfer protocol volume expands.", category: "Regulation" }
+      { source: "Web Feed", headline: "Exchange transaction activity reaches localized monthly peak.", category: "Crypto" }
     ];
   }
 }
