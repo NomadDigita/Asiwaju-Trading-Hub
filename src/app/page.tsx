@@ -17,6 +17,43 @@ interface TradeProposal {
 // Redirect all Web dashboard fetches to your secure, long-running Render API Server
 const BACKEND_API_BASE = "https://asiwaju-trading-hub.onrender.com";
 
+// Helper to generate the shaded SVG paths
+function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
+  const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
+  const points = 15;
+  const coords: { x: number; y: number }[] = [];
+  let currentVal = 100;
+  const targetVal = 100 + (pnl * 3);
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    if (i === 0) {
+      currentVal = 100;
+    } else if (i === points - 1) {
+      currentVal = targetVal;
+    } else {
+      const progress = i / (points - 1);
+      const expectedVal = 100 + ((targetVal - 100) * progress);
+      const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
+      currentVal = expectedVal + wave;
+    }
+    const minVal = 70;
+    const maxVal = 135;
+    const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
+    coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
+  }
+  return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+}
+
+function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
+  const linePath = generateSvgPath(pnlPercentStr, width, height);
+  return `${linePath} L ${width} ${height} L 0 ${height} Z`;
+}
+
+// -------------------------------------------------------------
+// MAIN DASHBOARD COMPONENT
+// -------------------------------------------------------------
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("committee");
   const [coinInput, setCoinInput] = useState("SOL");
@@ -106,39 +143,6 @@ export default function Dashboard() {
 
     return () => clearInterval(pulseTimer);
   }, []);
-
-  // Helpers to generate SVG path
-  function generateSvgPath(pnlPercentStr: string, width: number, height: number): string {
-    const pnl = parseFloat(pnlPercentStr.replace(/[^\d.-]/g, '')) || 0;
-    const points = 15;
-    const coords: { x: number; y: number }[] = [];
-    let currentVal = 100;
-    const targetVal = 100 + (pnl * 3);
-
-    for (let i = 0; i < points; i++) {
-      const x = (i / (points - 1)) * width;
-      if (i === 0) {
-        currentVal = 100;
-      } else if (i === points - 1) {
-        currentVal = targetVal;
-      } else {
-        const progress = i / (points - 1);
-        const expectedVal = 100 + ((targetVal - 100) * progress);
-        const wave = (Math.sin(i * 1.8) * 3) + (Math.cos(i * 0.9) * 1.5);
-        currentVal = expectedVal + wave;
-      }
-      const minVal = 70;
-      const maxVal = 135;
-      const y = height - ((currentVal - minVal) / (maxVal - minVal)) * height;
-      coords.push({ x, y: Math.min(Math.max(y, 15), height - 15) });
-    }
-    return coords.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  }
-
-  function generateSvgAreaPath(pnlPercentStr: string, width: number, height: number): string {
-    const linePath = generateSvgPath(pnlPercentStr, width, height);
-    return `${linePath} L ${width} ${height} L 0 ${height} Z`;
-  }
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -693,7 +697,7 @@ export default function Dashboard() {
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
                 <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
