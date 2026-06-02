@@ -168,7 +168,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 4. Sentinel News Endpoint (Returns structured JSON)
+    // 4. News Sentinel Endpoint (Returns structured JSON)
     if (url.pathname === '/api/sentinel' && req.method === 'POST') {
       const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
       Analyze the news feed.
@@ -227,16 +227,16 @@ server.listen(PORT, () => {
   // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping
   setInterval(() => {
     if (RENDER_URL) {
-      console.log(`@ Keep-Alive: Pinging self at ${RENDER_URL}...`);
+      console.log(`🛰️ Keep-Alive: Pinging self at ${RENDER_URL}...`);
       https.get(RENDER_URL, (res) => {
-        console.log(`@ Keep-Alive: Self-ping acknowledged. Status Code: ${res.statusCode}`);
+        console.log(`🛰️ Keep-Alive: Self-ping acknowledged. Status Code: ${res.statusCode}`);
       }).on('error', (err) => {
-        console.error(`@ Keep-Alive: Self-ping failed:`, err.message);
+        console.error(`⚠️ Keep-Alive: Self-ping failed:`, err.message);
       });
     }
   }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade (Uses static ES6 imports)
+  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
     try {
