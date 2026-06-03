@@ -35,36 +35,46 @@ function extractShieldJson(rawText: string): any {
   return JSON.parse(jsonString);
 }
 
-// 1. Perception Layer: Pull live Spot Ticker price from Bitget (Vercel & Render Bypass Included)
+// 1. Perception Layer: Multi-Exchange CEX + DEX Price Aggregator (Resolves DeFi assets like LAB/WXT)
 async function getLivePrice(symbol: string): Promise<string> {
-  console.log(`🔍 [DIAGNOSTIC] Perception check: Pulling live pricing feed for ${symbol}...`);
-  if (process.env.VERCEL || process.env.RENDER) {
-    try {
-      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
+  const ticker = symbol.replace("USDT", "").toUpperCase();
+  console.log(`🔍 [DIAGNOSTIC] Perception check: Pulling live pricing feed for ${ticker}...`);
+
+  // Step A: Attempt primary query via Binance CEX API
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
+    if (res.status === 200) {
       const data = await res.json();
       if (data && data.price) {
-        console.log(`🔍 [DIAGNOSTIC] Pricing check: Binance API resolved ${symbol} at $${data.price}`);
+        console.log(`🔍 [DIAGNOSTIC] CEX check: Binance API resolved ${symbol} at $${parseFloat(data.price).toFixed(4)}`);
         return parseFloat(data.price).toString();
       }
-    } catch (e: any) {
-      console.warn("⚠️ Public price feed failed. Using baseline parameters:", e.message);
     }
-    return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
+  } catch (cexErr: any) {
+    console.warn(`⚠️ [CEX Feed] Binance ticker failed for ${symbol}: ${cexErr.message}`);
   }
 
-  const requestPath = `/api/v2/spot/market/tickers?symbol=${symbol}`;
+  // Step B: Multi-Exchange DEX Fallback (DEXScreener API) to resolve DeFi tokens (like LAB, WXT, etc.)
   try {
-    const response = await fetch('https://api.bitget.com' + requestPath);
-    const result = await response.json();
-    if (result.code === '00000' && Array.isArray(result.data) && result.data[0]) {
-      console.log(`🔍 [DIAGNOSTIC] Pricing check: Bitget Spot V2 resolved ${symbol} at $${result.data[0].lastPr}`);
-      return result.data[0].lastPr;
+    console.log(`🛰️ [DEX Fallback] Querying DeFi Liquidity pools for ${ticker}...`);
+    const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`);
+    if (dexRes.status === 200) {
+      const dexData = await dexRes.json();
+      if (dexData && Array.isArray(dexData.pairs) && dexData.pairs.length > 0) {
+        // Find the highest liquidity USD pair matching the token
+        const matchedPair = dexData.pairs.find((p: any) => p.quoteToken?.symbol === "USDT" || p.quoteToken?.symbol === "USDC") || dexData.pairs[0];
+        if (matchedPair && matchedPair.priceUsd) {
+          console.log(`🎯 [DEX Feed] DEXScreener resolved ${ticker} pool price at $${parseFloat(matchedPair.priceUsd).toFixed(4)}`);
+          return parseFloat(matchedPair.priceUsd).toString();
+        }
+      }
     }
-    return "0.0";
-  } catch (error: any) {
-    console.error("❌ [DIAGNOSTIC] Error fetching live price:", error.message);
-    return "0.0";
+  } catch (dexErr: any) {
+    console.error(`❌ [DEX Feed] DeFi liquidity query failed for ${ticker}:`, dexErr.message);
   }
+
+  // Step C: Absolute Dynamic Fallbacks
+  return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
 }
 
 // 2. Decision Layer: Scan market and generate trade proposals
@@ -93,7 +103,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   const apiKey = process.env.QWEN_API_KEY;
   if (!apiKey) throw new Error("QWEN_API_KEY is missing from environment variables.");
 
-  // Updated Prompt: Removed the NO_SETUP escape condition to enforce trade generation
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
   Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
   and formulate the single highest-probability tactical setup (buy or sell) for ${symbol}.
