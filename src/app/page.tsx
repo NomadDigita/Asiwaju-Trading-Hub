@@ -118,15 +118,7 @@ export default function Dashboard() {
   });
 
   // Trading Agent States
-  const [agentProposal, setAgentProposal] = useState<TradeProposal | null>({
-    symbol: "SOLUSDT",
-    side: "buy",
-    price: "172.50",
-    quantity: "5.0000",
-    stopLoss: "168.18",
-    takeProfit: "181.12",
-    reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
-  });
+  const [agentProposal, setAgentProposal] = useState<TradeProposal | null>(null);
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]); // SDK Observability log list
   const [isAutopilot, setIsAutopilot] = useState(false);
@@ -145,15 +137,18 @@ export default function Dashboard() {
     }
   }, []);
 
-  // 10-Second High-Frequency Live Pulse Listener
+  // Dynamic High-Frequency Live Pulse price listener. Automatically tracks the symbol of the active proposal
   useEffect(() => {
+    if (!agentProposal) return;
+    const currentTicker = agentProposal.symbol.replace("USDT", "");
+
     const pulseTimer = setInterval(async () => {
       try {
-        const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=SOL`);
+        const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${currentTicker}`);
         const data = await response.json();
         if (data && data.price) {
-          console.log(`📡 [Live Pulse] Fetching current SOL spot price: $${parseFloat(data.price).toFixed(2)}`);
-          setAgentProposal(prev => prev ? { ...prev, price: data.price } : null);
+          console.log(`📡 [Live Pulse] Fetching current ${currentTicker} spot price: $${parseFloat(data.price).toFixed(2)}`);
+          setAgentProposal(prev => (prev && prev.symbol === data.symbol) ? { ...prev, price: data.price } : prev);
         }
       } catch (err) {
         console.warn("⚠️ Live pulse heartbeat connection dropped.");
@@ -161,7 +156,7 @@ export default function Dashboard() {
     }, 10000);
 
     return () => clearInterval(pulseTimer);
-  }, []);
+  }, [agentProposal?.symbol]);
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -215,7 +210,6 @@ export default function Dashboard() {
           adjustments: data.adjustments
         });
 
-        // Append the new score to client history memory (capping at last 5 scores)
         const updatedHistory = [...scoreHistory, data.score].slice(-5);
         setScoreHistory(updatedHistory);
         localStorage.setItem("asiwaju_score_history", JSON.stringify(updatedHistory));

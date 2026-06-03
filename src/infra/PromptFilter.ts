@@ -7,6 +7,24 @@ export interface SafetyReport {
   confidence: number;
 }
 
+// Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
+function extractShieldJson(rawText: string): any {
+  let cleanText = rawText
+    .replace(/^\`\`\`(json)?\n/, '')
+    .replace(/\`\`\`$/, '')
+    .trim();
+
+  const startIdx = cleanText.indexOf('{');
+  const endIdx = cleanText.lastIndexOf('}');
+
+  if (startIdx === -1 || endIdx === -1) {
+    throw new Error("Target JSON boundaries not resolved inside raw text block.");
+  }
+
+  const jsonString = cleanText.slice(startIdx, endIdx + 1);
+  return JSON.parse(jsonString);
+}
+
 /**
  * Analyzes natural language prompts for malicious injection, bypass attempts, or security anomalies
  * @param prompt Raw text prompt input by the user
@@ -50,7 +68,7 @@ export async function evaluatePromptSafety(prompt: string): Promise<SafetyReport
     const data = await response.json();
     const resultText = data.choices?.[0]?.message?.content?.trim();
 
-    if (!resultText || !resultText.startsWith("{")) {
+    if (!resultText || (!resultText.includes("{") && !resultText.includes("}"))) {
       return {
         status: 'UNSAFE',
         reason: 'Malformed security response. Blocking transaction as a defensive default.',
@@ -58,7 +76,8 @@ export async function evaluatePromptSafety(prompt: string): Promise<SafetyReport
       };
     }
 
-    const report: SafetyReport = JSON.parse(resultText);
+    // Extract JSON safely, parsing markdown wrappers without crashing
+    const report: SafetyReport = extractShieldJson(resultText);
     return report;
 
   } catch (error: any) {
