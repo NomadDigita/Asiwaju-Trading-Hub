@@ -14,6 +14,12 @@ export interface TradeProposal {
   reason: string;
 }
 
+interface RegimeReport {
+  regime: string;
+  volatility: string;
+  change: string;
+}
+
 // Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
 function extractShieldJson(rawText: string): any {
   console.log("🔍 [DIAGNOSTIC] Extracting JSON boundary coordinates...");
@@ -77,7 +83,56 @@ async function getLivePrice(symbol: string): Promise<string> {
   return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
 }
 
-// 2. Decision Layer: Scan market and generate trade proposals
+// 2. Regime Detection Layer: Analyzes price bounds & volatility to identify current trading regime
+async function getMarketRegime(symbol: string): Promise<RegimeReport> {
+  const ticker = symbol.replace("USDT", "").toUpperCase();
+  console.log(`🔍 [DIAGNOSTIC] Regime check: Analyzing volatility profile for ${ticker}...`);
+
+  // Attempt to parse 24h ticker data from Binance
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+    if (res.status === 200) {
+      const data = await res.json();
+      const change = parseFloat(data.priceChangePercent) || 0;
+      const high = parseFloat(data.highPrice) || 0;
+      const low = parseFloat(data.lowPrice) || 0;
+      const volatility = low > 0 ? (((high - low) / low) * 100).toFixed(2) : "0.00";
+
+      let regime = "Ranging (Sideways)";
+      if (change >= 2.5) regime = "Trending Bullish (Momentum)";
+      else if (change <= -2.5) regime = "Trending Bearish (Defensive)";
+
+      console.log(`🔍 [DIAGNOSTIC] Regime check: CEX reports ${ticker} change: ${change}% | Volatility Index: ${volatility}%`);
+      return { regime, volatility, change: change.toFixed(2) };
+    }
+  } catch {
+    console.warn(`⚠️ [Regime CEX Feed] Failed to fetch 24h ticker for ${symbol}. Trying DEXScreener data...`);
+  }
+
+  // Fallback to DEXScreener 24h price change data
+  try {
+    const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`);
+    if (dexRes.status === 200) {
+      const dexData = await dexRes.json();
+      if (dexData && Array.isArray(dexData.pairs) && dexData.pairs.length > 0) {
+        const matchedPair = dexData.pairs[0];
+        const change = parseFloat(matchedPair.priceChange?.h24) || 0;
+        let regime = "Ranging (Sideways)";
+        if (change >= 2.5) regime = "Trending Bullish (Momentum)";
+        else if (change <= -2.5) regime = "Trending Bearish (Defensive)";
+
+        console.log(`🎯 [Regime DEX Feed] DEXScreener reports ${ticker} 24h change: ${change}%`);
+        return { regime, volatility: "2.50", change: change.toFixed(2) };
+      }
+    }
+  } catch (dexErr: any) {
+    console.error("❌ [Regime DEX Feed] Failed to resolve pool metrics:", dexErr.message);
+  }
+
+  return { regime: "Ranging (Sideways)", volatility: "1.50", change: "0.00" };
+}
+
+// 3. Decision Layer: Scan market and generate trade proposals
 export async function scanMarketOpportunity(coin: string): Promise<TradeProposal | null> {
   const symbol = `${coin.toUpperCase()}USDT`;
   console.log(`🔍 [DIAGNOSTIC] Initiating scanMarketOpportunity for ${symbol}...`);
@@ -89,6 +144,9 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     console.warn(`⚠️ Unable to resolve active pricing feed for ${symbol}. Skipping scan.`);
     return null;
   }
+
+  // Call dynamic Regime Detection Engine to fetch current market style
+  const marketRegime = await getMarketRegime(symbol);
 
   console.log(`🔍 [DIAGNOSTIC] Querying Sentinel for dynamic market sentiment feedstock...`);
   let sentimentSummary = "Macro indicators ranging.";
@@ -103,21 +161,28 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   const apiKey = process.env.QWEN_API_KEY;
   if (!apiKey) throw new Error("QWEN_API_KEY is missing from environment variables.");
 
+  // Enforces style-shifting. AI is instructed to alter strategy parameters based on detected regime
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
-  Your objective is to evaluate current market data, price points, and Sentinel sentiment digests, 
-  and formulate the single highest-probability tactical setup (buy or sell) for ${symbol}.
+  Your objective is to evaluate current market data, price points, Sentinel sentiment digests, and the active Market Regime metrics.
   
-  Even in ranging, neutral, or consolidation environments, identify localized support/resistance lines, 
-  order-book volume imbalances, or short-term trends to build a valid tactical proposal. 
+  Current Market Environment Context:
+  • **Active Regime:** ${marketRegime.regime}
+  • **24h Volatility Index:** ${marketRegime.volatility}%
+  • **24h Price Change:** ${marketRegime.change}%
+  
+  Algorithmic Style Shifting Instructions:
+  - If the active regime is "Ranging (Sideways)": Formulate a range-bound mean-reversion setup (Buy support or Sell resistance horizontal zones).
+  - If the active regime is "Trending Bullish (Momentum)": Formulate an aggressive momentum breakout setup (Buy daily highs or moving average consolidations).
+  - If the active regime is "Trending Bearish (Defensive)": Formulate a defensive risk-hedging setup, short-sell proposal, or a strict capital preservation play.
   
   You MUST return a valid JSON object matching this structure (and absolutely no other text, conversational wrapper, or markdown syntax):
   {
     "symbol": "${symbol}",
     "side": "buy",
     "price": "${livePrice}",
-    "stopLoss": "[Calculate 2.5% stop-loss level]",
-    "takeProfit": "[Calculate 5% take-profit level]",
-    "reason": "[One sentence technical/sentiment tactical justification]"
+    "stopLoss": "[Calculate adaptive stop-loss level based on regime volatility]",
+    "takeProfit": "[Calculate adaptive take-profit level based on regime volatility]",
+    "reason": "[One sentence technical/sentiment tactical justification mentioning the detected ${marketRegime.regime} regime]"
   }`;
 
   try {
@@ -151,7 +216,7 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   }
 }
 
-// 3. Action Layer: Execute order on Bitget V2 API (Spot Market Order)
+// 4. Action Layer: Execute order on Bitget V2 API (Spot Market Order)
 export async function executeApprovedTrade(proposal: TradeProposal): Promise<string> {
   const requestPath = '/api/v2/spot/trade/place-order';
   console.log(`🔍 [DIAGNOSTIC] Action check: Executing Spot Market Order for ${proposal.symbol}...`);
@@ -188,7 +253,7 @@ export async function executeApprovedTrade(proposal: TradeProposal): Promise<str
   }
 }
 
-// 4. Autonomous Autopilot Layer: Scans, Analyzes, and Directly Executes
+// 5. Autonomous Autopilot Layer: Scans, Analyzes, and Directly Executes
 export async function runAutopilotExecution(specificCoin?: string): Promise<string> {
   const coinsToScan = specificCoin ? [specificCoin.toUpperCase()] : ['BTC', 'SOL', 'ETH'];
   console.log(`🤖 [Autopilot] Commencing autonomous scan loop for: ${coinsToScan.join(', ')}...`);
