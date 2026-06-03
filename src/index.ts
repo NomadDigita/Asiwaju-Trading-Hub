@@ -141,8 +141,8 @@ async function fetchDynamicLiveNews(): Promise<any[]> {
     });
 
     if (response.status === 200) {
-      const data = await response.json();
-      if (Array.isArray(data.results)) {
+      const data = await response.status === 200 ? await response.json() : null;
+      if (data && Array.isArray(data.results)) {
         return data.results.map((r: any) => ({
           source: r.title ? r.title.slice(0, 15) : "Web News",
           headline: r.snippet ? r.snippet.slice(0, 100) : r.title,
@@ -233,7 +233,6 @@ const server = http.createServer(async (req, res) => {
         tradeLogPayload = JSON.stringify(dynamicFills);
       }
 
-      // Updated Prompt: Removed the hardcoded score "25" from formatting instructions
       const systemPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub.
       Analyze the user's trading log.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
@@ -309,7 +308,6 @@ const server = http.createServer(async (req, res) => {
         activeNewsPayload = JSON.stringify(dynamicNews);
       }
 
-      // Updated Prompt: Removed hardcoded index "92" and placeholder strings from instructions
       const systemPrompt = `You are the Chief Intelligence Officer and Sentinel News Analyst at Asiwaju AI Hub.
       Analyze the news feed.
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
@@ -331,7 +329,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 5. Agent Scan & Execute Endpoint (Protected via AAS SDK pipeline)
+    // 5. Agent Scan & Execute Endpoint (Protected via AAS SDK pipeline with live traces)
     if (url.pathname === '/api/agent') {
       if (req.method === 'GET') {
         const coin = url.searchParams.get("coin") || "SOL";
@@ -359,7 +357,6 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ error: "Invalid trade proposal payload." }));
           }
 
-          // Map TradeProposal strings to numeric TradeRequest format expected by the Shield SDK
           const tradeRequest = {
             symbol: proposal.symbol,
             side: proposal.side as 'buy' | 'sell',
@@ -367,11 +364,11 @@ const server = http.createServer(async (req, res) => {
             quantity: parseFloat(proposal.quantity)
           };
 
-          // Secure trade execution using the Asiwaju Agent Shield SDK pipeline
+          // Execute via Asiwaju Agent Shield SDK pipeline
           const shieldReport = await AsiwajuAgentShield.processSecureTrade(
             proposal.reason || "Execute manual web-dashboard approved transaction.",
             tradeRequest,
-            `web_sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` // Generate nonce transaction signature
+            `web_sig_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
           );
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -380,6 +377,7 @@ const server = http.createServer(async (req, res) => {
             promptSafety: shieldReport.promptSafety,
             riskGuardrail: shieldReport.riskGuardrail,
             orderId: shieldReport.orderId || null,
+            logs: shieldReport.logs, // Passing full execution traces to frontend client
             error: shieldReport.success ? undefined : shieldReport.message
           }));
         } catch (execErr: any) {
@@ -425,19 +423,19 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`📡 Render API Server active on port ${PORT}. Bots are operational.`);
 
-  // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping
+  // 1. Keep-Alive Loop
   setInterval(() => {
     if (RENDER_URL) {
-      console.log(`🛰️ Keep-Alive: Pinging self at ${RENDER_URL}...`);
+      console.log(`🛰️ Keep-Alive: Pinging self...`);
       https.get(RENDER_URL, (res) => {
-        console.log(`🛰️ Keep-Alive: Self-ping acknowledged. Status Code: ${res.statusCode}`);
+        console.log(`🛰️ Keep-Alive: Self-ping acknowledged. Status: ${res.statusCode}`);
       }).on('error', (err) => {
-        console.error(`⚠️ Keep-Alive: Self-ping failed:`, err.message);
+        console.error(`⚠️ Keep-Alive failed:`, err.message);
       });
     }
   }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop: Runs every 10 minutes to scan and auto-trade
+  // 2. Autonomous Portfolio Scanner Loop
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
     try {

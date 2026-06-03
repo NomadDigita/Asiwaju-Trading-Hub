@@ -126,6 +126,7 @@ export default function Dashboard() {
     reason: "Solana is consolidating on heavy exchange outflows, indicating a high-probability breakout above localized horizontal resistance."
   });
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([]); // SDK Observability log list
   const [isAutopilot, setIsAutopilot] = useState(false);
 
   // 10-Second High-Frequency Live Pulse Listener
@@ -260,15 +261,25 @@ export default function Dashboard() {
   const handleAgentScan = async () => {
     setAgentLoading(true);
     setExecutionMessage(null);
+    setTerminalLogs([]);
     try {
+      setTerminalLogs([`[${new Date().toISOString().slice(11, 23)}] > Initializing scanning agent...`]);
       const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${coinInput}`);
       const data = await response.json();
       console.log("📊 [Diagnostic] Agent scan response:", data);
 
       if (data && data.symbol) {
         setAgentProposal(data);
+        setTerminalLogs(prev => [
+          ...prev, 
+          `[${new Date().toISOString().slice(11, 23)}] > Active setup resolved for ${data.symbol} at $${parseFloat(data.price).toFixed(2)}`
+        ]);
       } else {
         setAgentProposal(null);
+        setTerminalLogs(prev => [
+          ...prev, 
+          `[${new Date().toISOString().slice(11, 23)}] > Scanner completed. No horizontal setups detected.`
+        ]);
         setExecutionMessage("⚪ Sentiment ranges. No high-probability setups detected.");
       }
     } catch (err) {
@@ -278,11 +289,12 @@ export default function Dashboard() {
     }
   };
 
-  // 6. Execute Approved Trade (ShieldSDK Pipeline API)
+  // 6. Execute Approved Trade (ShieldSDK Pipeline with Sequential Animate Logger)
   const handleExecuteTrade = async () => {
     if (!agentProposal) return;
     setAgentLoading(true);
-    setExecutionMessage("🔒 [ShieldSDK] Intercepting order... Running full-stack safety analysis...");
+    setExecutionMessage(null);
+    setTerminalLogs([`[${new Date().toISOString().slice(11, 23)}] 🔒 [ShieldSDK] Intercepting transaction request...`]);
     
     try {
       const response = await fetch(`${BACKEND_API_BASE}/api/agent`, {
@@ -293,20 +305,39 @@ export default function Dashboard() {
       const data = await response.json();
       console.log("📊 [Diagnostic] Trade execution response:", data);
 
-      if (data.success) {
-        setExecutionMessage(
-          `🔒 [ShieldSDK] Prompt Security: ${data.promptSafety} ✅\n` +
-          `🛡️ [ShieldSDK] Code Guardrails: ${data.riskGuardrail} ✅\n` +
-          `🎯 [Exchange] Trade Executed! Order ID: ${data.orderId}`
-        );
-        setAgentProposal(null); // Clear proposal on success
+      if (data.logs && Array.isArray(data.logs)) {
+        // Sequentially print the SDK execution logs with typewriter offset
+        setTerminalLogs([]);
+        data.logs.forEach((logLine: string, index: number) => {
+          setTimeout(() => {
+            setTerminalLogs(prev => [...prev, logLine]);
+          }, index * 400); // 400ms diagnostic delay per security layer
+        });
+
+        // Set state values once compilation animation resolves
+        setTimeout(() => {
+          if (data.success) {
+            setExecutionMessage(`🎯 [Exchange] Trade Executed successfully! Order ID: ${data.orderId}`);
+            setAgentProposal(null); // Clear proposal on success
+          } else {
+            setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
+          }
+          setAgentLoading(false);
+        }, data.logs.length * 400);
+
       } else {
-        setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
+        // Fallback if no logs are returned
+        if (data.success) {
+          setExecutionMessage(`🎯 [Exchange] Trade Executed! Order ID: ${data.orderId}`);
+          setAgentProposal(null);
+        } else {
+          setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
+        }
+        setAgentLoading(false);
       }
     } catch (err) {
       console.error("❌ [Diagnostic] Trade execution fetch failed:", err);
       setExecutionMessage("❌ Exception during SDK routing. Auto-blocked.");
-    } finally {
       setAgentLoading(false);
     }
   };
@@ -518,7 +549,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="px-3.5 py-1.5 bg-rose-500/10 border border-rose-500/25 rounded-xl text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
-                  Critical Danger Zone
+                  Behavioral Health Matrix
                 </div>
               </div>
 
@@ -826,18 +857,23 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Right Column: Execution Log Console */}
+              {/* Right Column: Execution Log Console with Live SDK Observability */}
               <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
                 <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
-                  <div>
-                    <div className="text-cyan-600 mb-2">&gt; Initializing agent execution logger...</div>
+                  <div className="space-y-1.5 select-text">
+                    <div className="text-cyan-600">&gt; Initializing agent execution logger...</div>
                     <div className="text-white/40">&gt; Awaiting order permission signals...</div>
+                    {terminalLogs.map((log, i) => (
+                      <div key={i} className="text-cyan-400/90 leading-tight">
+                        &gt; {log}
+                      </div>
+                    ))}
                     {executionMessage && (
-                      <div className="text-emerald-400 mt-4 animate-pulse">&gt; {executionMessage}</div>
+                      <div className="text-emerald-400 mt-4 animate-pulse font-bold">&gt; {executionMessage}</div>
                     )}
                   </div>
-                  <div className="text-[9px] text-white/20 uppercase tracking-widest font-mono">ASIWAJU_TERMINAL_OUT</div>
+                  <div className="text-[9px] text-white/20 uppercase tracking-widest font-mono select-none mt-2">ASIWAJU_TERMINAL_OUT</div>
                 </div>
               </div>
 

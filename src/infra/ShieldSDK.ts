@@ -13,6 +13,7 @@ export interface ExecutionReport {
   replayGuard: 'PASSED' | 'BLOCKED';
   message: string;
   orderId?: string;
+  logs: string[]; // Forensic-grade execution traces returned to the frontend terminal
 }
 
 // Stateful In-Memory Protection Registries for developers (Track 2 Focus)
@@ -31,29 +32,41 @@ export class AsiwajuAgentShield {
     tradeRequest: TradeRequest,
     transactionSignature?: string
   ): Promise<ExecutionReport> {
-    console.log(`🔒 [ShieldSDK] Intercepting transaction request for ${tradeRequest.symbol}...`);
+    const logs: string[] = [];
+    const getTimestamp = () => `[${new Date().toISOString().slice(11, 23)}]`;
+    
+    logs.push(`${getTimestamp()} AAS SHIELD: Intercepted manual transaction authorization request.`);
+    logs.push(`${getTimestamp()} AAS SHIELD: Instantiating zero-trust multi-layered defensive pipeline...`);
 
     // 1. Stateful Re-entrancy Guard (Blocks race-conditions and malicious smart contract callbacks)
+    logs.push(`${getTimestamp()} AAS SHIELD (Layer 3): Checking Stateful Re-entrancy Lock (isExecuting: ${isExecuting})...`);
     if (isExecuting) {
-      console.warn("🚨 [ShieldSDK] Re-entrancy Attack Blocked: Concurrent transaction execution detected.");
+      const errMsg = 'Re-entrancy Guard Triggered: Concurrent transaction thread blocked.';
+      console.warn(`🚨 [ShieldSDK] ${errMsg}`);
+      logs.push(`${getTimestamp()} 🚨 AAS SHIELD: RE-ENTRANCY VIOLATION DETECTED. Execution thread locked.`);
       return {
         success: false,
         promptSafety: 'SAFE',
         riskGuardrail: 'BLOCKED',
         reentrancyGuard: 'BLOCKED',
         replayGuard: 'PASSED',
-        message: 'Re-entrancy Guard Triggered: Concurrent transaction thread blocked.'
+        message: errMsg,
+        logs: logs
       };
     }
 
     // Lock Execution
     isExecuting = true;
+    logs.push(`${getTimestamp()} AAS SHIELD: Re-entrancy stateful lock ENGAGED (isExecuting: true).`);
 
     try {
       // 2. Cryptographic Replay Attack Guard (Blocks dual-spend or repetitive execution clones)
       if (transactionSignature) {
+        logs.push(`${getTimestamp()} AAS SHIELD (Layer 3): Verifying unique cryptographic signature nonce...`);
         if (PROCESSED_SIGNATURES.has(transactionSignature)) {
-          console.warn("🚨 [ShieldSDK] Signature Replay Attack Blocked: Duplicate transaction payload detected.");
+          const errMsg = 'Signature Replay Guard Triggered: Duplicate transaction signature blocked.';
+          console.warn(`🚨 [ShieldSDK] ${errMsg}`);
+          logs.push(`${getTimestamp()} 🚨 AAS SHIELD: REPLAY ATTACK BLOCKED. Signature nonce has been previously executed.`);
           isExecuting = false; // Unlock
           return {
             success: false,
@@ -61,16 +74,23 @@ export class AsiwajuAgentShield {
             riskGuardrail: 'BLOCKED',
             reentrancyGuard: 'PASSED',
             replayGuard: 'BLOCKED',
-            message: 'Signature Replay Guard Triggered: Duplicate transaction signature blocked.'
+            message: errMsg,
+            logs: logs
           };
         }
         PROCESSED_SIGNATURES.add(transactionSignature);
+        logs.push(`${getTimestamp()} AAS SHIELD: Cryptographic signature verified and cached in memory.`);
       }
 
       // 3. Prompt Safety Evaluation (AI Defense)
+      logs.push(`${getTimestamp()} AAS SHIELD (Layer 1): Initializing prompt injection firewall...`);
+      logs.push(`${getTimestamp()} AAS SHIELD: Evaluating user intent prompts via Alibaba Qwen-Firewall...`);
       const safetyReport = await evaluatePromptSafety(prompt);
+      
       if (safetyReport.status === 'UNSAFE') {
+        const errMsg = `Blocked by AI Security Filter: ${safetyReport.reason}`;
         console.warn(`🔴 [ShieldSDK] Layer 1 Violation: Malicious or anomalous prompt detected.`);
+        logs.push(`${getTimestamp()} 🔴 AAS SHIELD: PROMPT INJECTION DETECTED. Safety threshold violated.`);
         isExecuting = false; // Unlock
         return {
           success: false,
@@ -78,14 +98,21 @@ export class AsiwajuAgentShield {
           riskGuardrail: 'BLOCKED',
           reentrancyGuard: 'PASSED',
           replayGuard: 'PASSED',
-          message: `Blocked by AI Security Filter: ${safetyReport.reason}`
+          message: errMsg,
+          logs: logs
         };
       }
+      logs.push(`${getTimestamp()} AAS SHIELD: Prompt scan complete. Outcome: SAFE (No injection strings located).`);
 
       // 4. Programmatic Risk Evaluation (Code-Level Defense)
+      logs.push(`${getTimestamp()} AAS SHIELD (Layer 2): Enforcing hardcoded programmatic risk limits...`);
+      logs.push(`${getTimestamp()} AAS SHIELD: Verifying parameter limits ($10 max size, asset whitelist, 30s cooldown)...`);
       const guardrailReport = evaluateRiskGuardrails(tradeRequest);
+      
       if (!guardrailReport.passed) {
+        const errMsg = `Blocked by Code Guardrails: ${guardrailReport.violations.join('; ')}`;
         console.warn(`🔴 [ShieldSDK] Layer 2 Violation: Programmatic risk bounds exceeded.`);
+        logs.push(`${getTimestamp()} 🔴 AAS SHIELD: PROGRAMMATIC RISK BOUNDS EXCEEDED. Trade parameters rejected.`);
         isExecuting = false; // Unlock
         return {
           success: false,
@@ -93,11 +120,14 @@ export class AsiwajuAgentShield {
           riskGuardrail: 'BLOCKED',
           reentrancyGuard: 'PASSED',
           replayGuard: 'PASSED',
-          message: `Blocked by Code Guardrails: ${guardrailReport.violations.join('; ')}`
+          message: errMsg,
+          logs: logs
         };
       }
+      logs.push(`${getTimestamp()} AAS SHIELD: Parameter check complete. Outcome: PASSED.`);
 
       // 5. Secure Signing & Execution on Bitget
+      logs.push(`${getTimestamp()} AAS SHIELD: Formulating signed trade request payload...`);
       const proposal: TradeProposal = {
         symbol: tradeRequest.symbol,
         side: tradeRequest.side,
@@ -108,12 +138,17 @@ export class AsiwajuAgentShield {
         reason: 'Authorized via Asiwaju Agent Shield SDK middleware.'
       };
 
+      logs.push(`${getTimestamp()} AAS SHIELD (Layer 4): Generating HMAC-SHA256 signature headers on-server...`);
+      logs.push(`${getTimestamp()} EXCHANGE GATEWAY: Placing Market Order on Bitget Spot V2...`);
       const executionResult = await executeApprovedTrade(proposal);
       const [status, details] = executionResult.split(':');
 
       isExecuting = false; // Unlock
+      logs.push(`${getTimestamp()} AAS SHIELD: Stateful lock DISENGAGED (isExecuting: false).`);
 
       if (status === 'SUCCESS') {
+        logs.push(`${getTimestamp()} 🎯 EXCHANGE GATEWAY: Order accepted successfully. Order ID: ${details}`);
+        logs.push(`${getTimestamp()} AAS SHIELD: Execution sequence completed successfully.`);
         return {
           success: true,
           promptSafety: 'SAFE',
@@ -121,29 +156,34 @@ export class AsiwajuAgentShield {
           reentrancyGuard: 'PASSED',
           replayGuard: 'PASSED',
           message: 'Transaction successfully executed on Bitget Spot V2.',
-          orderId: details
+          orderId: details,
+          logs: logs
         };
       } else {
+        logs.push(`${getTimestamp()} ❌ EXCHANGE GATEWAY: Order rejected by Bitget exchange matching engine: ${details}`);
         return {
           success: false,
           promptSafety: 'SAFE',
           riskGuardrail: 'PASSED',
           reentrancyGuard: 'PASSED',
           replayGuard: 'PASSED',
-          message: `Exchange rejection: ${details}`
+          message: `Exchange rejection: ${details}`,
+          logs: logs
         };
       }
 
     } catch (error: any) {
       isExecuting = false; // Unlock
       console.error(`❌ [ShieldSDK] Exception: ${error.message}`);
+      logs.push(`${getTimestamp()} ❌ AAS SHIELD: Exception occurred in execution pipeline: ${error.message}`);
       return {
         success: false,
         promptSafety: 'SAFE',
         riskGuardrail: 'PASSED',
         reentrancyGuard: 'PASSED',
         replayGuard: 'PASSED',
-        message: `Execution pipeline exception: ${error.message}`
+        message: `Execution pipeline exception: ${error.message}`,
+        logs: logs
       };
     }
   }
