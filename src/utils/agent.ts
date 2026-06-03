@@ -41,12 +41,39 @@ function extractShieldJson(rawText: string): any {
   return JSON.parse(jsonString);
 }
 
-// 1. Perception Layer: Multi-Exchange CEX + DEX Price Aggregator (Resolves DeFi assets like LAB/WXT)
+// Map standard symbols to CoinGecko simple-price API identifier parameters
+const COINGECKO_MAP: Record<string, string> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  BNB: "binancecoin",
+  BGB: "bitget-token"
+};
+
+// 1. Perception Layer: Multi-Exchange CEX + DEX Price Aggregator (Bypasses symbol collisions and geoblocks)
 async function getLivePrice(symbol: string): Promise<string> {
   const ticker = symbol.replace("USDT", "").toUpperCase();
   console.log(`🔍 [DIAGNOSTIC] Perception check: Pulling live pricing feed for ${ticker}...`);
 
-  // Step A: Attempt primary query via Binance CEX API
+  // Step A: Attempt CoinGecko simple-price query for index-grade accurate feeds
+  const coingeckoId = COINGECKO_MAP[ticker];
+  if (coingeckoId) {
+    try {
+      const cgRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`);
+      if (cgRes.status === 200) {
+        const cgData = await cgRes.json();
+        if (cgData && cgData[coingeckoId] && cgData[coingeckoId].usd) {
+          const price = cgData[coingeckoId].usd.toString();
+          console.log(`🎯 [CoinGecko Feed] Index price resolved for ${ticker} at $${parseFloat(price).toFixed(4)}`);
+          return price;
+        }
+      }
+    } catch (cgErr: any) {
+      console.warn(`⚠️ [CoinGecko Feed] Index price fetch failed for ${ticker}:`, cgErr.message);
+    }
+  }
+
+  // Step B: Attempt secondary query via Binance CEX API
   try {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
     if (res.status === 200) {
@@ -60,14 +87,13 @@ async function getLivePrice(symbol: string): Promise<string> {
     console.warn(`⚠️ [CEX Feed] Binance ticker failed for ${symbol}: ${cexErr.message}`);
   }
 
-  // Step B: Multi-Exchange DEX Fallback (DEXScreener API) to resolve DeFi tokens (like LAB, WXT, etc.)
+  // Step C: Multi-Exchange DEX Fallback (DEXScreener API) for custom DeFi tokens
   try {
     console.log(`🛰️ [DEX Fallback] Querying DeFi Liquidity pools for ${ticker}...`);
     const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`);
     if (dexRes.status === 200) {
       const dexData = await dexRes.json();
       if (dexData && Array.isArray(dexData.pairs) && dexData.pairs.length > 0) {
-        // Find the highest liquidity USD pair matching the token
         const matchedPair = dexData.pairs.find((p: any) => p.quoteToken?.symbol === "USDT" || p.quoteToken?.symbol === "USDC") || dexData.pairs[0];
         if (matchedPair && matchedPair.priceUsd) {
           console.log(`🎯 [DEX Feed] DEXScreener resolved ${ticker} pool price at $${parseFloat(matchedPair.priceUsd).toFixed(4)}`);
@@ -79,7 +105,6 @@ async function getLivePrice(symbol: string): Promise<string> {
     console.error(`❌ [DEX Feed] DeFi liquidity query failed for ${ticker}:`, dexErr.message);
   }
 
-  // Step C: Absolute Dynamic Fallbacks
   return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
 }
 
@@ -145,7 +170,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     return null;
   }
 
-  // Call dynamic Regime Detection Engine to fetch current market style
   const marketRegime = await getMarketRegime(symbol);
 
   console.log(`🔍 [DIAGNOSTIC] Querying Sentinel for dynamic market sentiment feedstock...`);
@@ -161,7 +185,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   const apiKey = process.env.QWEN_API_KEY;
   if (!apiKey) throw new Error("QWEN_API_KEY is missing from environment variables.");
 
-  // Enforces style-shifting. AI is instructed to alter strategy parameters based on detected regime
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
   Your objective is to evaluate current market data, price points, Sentinel sentiment digests, and the active Market Regime metrics.
   
@@ -200,7 +223,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
     const proposal: any = extractShieldJson(resultText);
 
-    // BITGET V2 SPECIFIC SIZE ALLOCATION (USDT for buys, coin amount for sells)
     if (proposal.side === "buy") {
       proposal.quantity = "5.0000"; 
     } else {
@@ -266,7 +288,6 @@ export async function runAutopilotExecution(specificCoin?: string): Promise<stri
         continue;
       }
 
-      // Set autonomous safety parameters
       const confidenceScore = 9; 
       const MIN_CONFIDENCE_REQUIRED = 8;
 
