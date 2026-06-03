@@ -117,6 +117,15 @@ export default function Dashboard() {
     tactical: "With extreme FOMO prevalent, scale into long positions. Utilize trailing stop-losses to capture upside momentum."
   });
 
+  // Dedicated Live Market Card States (BTC, ETH, SOL, BNB, BGB)
+  const [marketPrices, setMarketPrices] = useState({
+    BTC: "67096.62",
+    ETH: "3740.00",
+    SOL: "172.50",
+    BNB: "585.00",
+    BGB: "1.25"
+  });
+
   // Trading Agent States
   const [agentProposal, setAgentProposal] = useState<TradeProposal | null>(null);
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
@@ -137,26 +146,29 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Dynamic High-Frequency Live Pulse price listener. Automatically tracks the symbol of the active proposal
+  // Dedicated High-Frequency Live Pulse Listener for the Market Indices Card (Completely decoupled from proposals)
   useEffect(() => {
-    if (!agentProposal) return;
-    const currentTicker = agentProposal.symbol.replace("USDT", "");
-
-    const pulseTimer = setInterval(async () => {
+    const fetchLiveTickerFeed = async () => {
       try {
-        const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${currentTicker}`);
-        const data = await response.json();
-        if (data && data.price) {
-          console.log(`📡 [Live Pulse] Fetching current ${currentTicker} spot price: $${parseFloat(data.price).toFixed(2)}`);
-          setAgentProposal(prev => (prev && prev.symbol === data.symbol) ? { ...prev, price: data.price } : prev);
-        }
-      } catch (err) {
-        console.warn("⚠️ Live pulse heartbeat connection dropped.");
+        const assets = ["BTC", "ETH", "SOL", "BNB", "BGB"];
+        const updatedPrices = { ...marketPrices };
+        await Promise.all(assets.map(async (ticker) => {
+          const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${ticker}`);
+          const data = await response.json();
+          if (data && data.price) {
+            updatedPrices[ticker as keyof typeof marketPrices] = parseFloat(data.price).toFixed(2);
+          }
+        }));
+        setMarketPrices(updatedPrices);
+      } catch {
+        console.warn("⚠️ Live Market Feed update dropped.");
       }
-    }, 10000);
+    };
 
-    return () => clearInterval(pulseTimer);
-  }, [agentProposal?.symbol]);
+    fetchLiveTickerFeed(); // Run immediately on mount
+    const interval = setInterval(fetchLiveTickerFeed, 10000); // Polling interval
+    return () => clearInterval(interval);
+  }, []);
 
   // 1. Convene Investment Committee (War Room API)
   const handleConveneCommittee = async () => {
@@ -757,8 +769,22 @@ export default function Dashboard() {
 
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
-          <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
+          <div className="space-y-6 animate-fade-in">
+            
+            {/* Separate Live Market Card (CEX+DEX Decoupled price indices) */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 select-none">
+              {Object.entries(marketPrices).map(([coin, price]) => (
+                <div key={coin} className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-[10px] font-extrabold text-white tracking-widest uppercase font-mono">{coin}</span>
+                  </div>
+                  <span className="text-xs font-bold text-cyan-300 font-mono">${price}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
                 <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
