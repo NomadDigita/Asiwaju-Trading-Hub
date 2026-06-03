@@ -92,6 +92,8 @@ export default function Dashboard() {
     ]
   });
 
+  const [scoreHistory, setScoreHistory] = useState<number[]>([]); // Dynamic client-side memory ledger
+
   const [strategyReport, setStrategyReport] = useState({
     translation: "This strategy defines an entry signal when the 1-hour RSI falls below 30. Exit conditions are set at a 4% take-profit target or a 2% stop-loss.",
     code: "import pandas as pd\nimport numpy as np\n# Quantitative backtest scripts fully compiled.",
@@ -128,6 +130,20 @@ export default function Dashboard() {
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]); // SDK Observability log list
   const [isAutopilot, setIsAutopilot] = useState(false);
+
+  // Initialize Client Score History from local storage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedHistory = localStorage.getItem("asiwaju_score_history");
+      if (storedHistory) {
+        try {
+          setScoreHistory(JSON.parse(storedHistory));
+        } catch {
+          console.warn("⚠️ Score history corrupt. Re-initializing.");
+        }
+      }
+    }
+  }, []);
 
   // 10-Second High-Frequency Live Pulse Listener
   useEffect(() => {
@@ -178,11 +194,15 @@ export default function Dashboard() {
     }
   };
 
-  // 2. Behavioral Audit (Guardian API)
+  // 2. Behavioral Audit (Guardian API with Stateful Memory)
   const handleRunAudit = async () => {
     setAuditLoading(true);
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { method: "POST" });
+      const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scoreHistory: scoreHistory }) // Send past score progression
+      });
       const data = await response.json();
       console.log("📊 [Diagnostic] Guardian response:", data);
 
@@ -194,6 +214,11 @@ export default function Dashboard() {
           criticalMistake: data.criticalMistake,
           adjustments: data.adjustments
         });
+
+        // Append the new score to client history memory (capping at last 5 scores)
+        const updatedHistory = [...scoreHistory, data.score].slice(-5);
+        setScoreHistory(updatedHistory);
+        localStorage.setItem("asiwaju_score_history", JSON.stringify(updatedHistory));
       }
     } catch (err) {
       console.error("❌ [Diagnostic] Guardian fetch failed:", err);
@@ -306,19 +331,17 @@ export default function Dashboard() {
       console.log("📊 [Diagnostic] Trade execution response:", data);
 
       if (data.logs && Array.isArray(data.logs)) {
-        // Sequentially print the SDK execution logs with typewriter offset
         setTerminalLogs([]);
         data.logs.forEach((logLine: string, index: number) => {
           setTimeout(() => {
             setTerminalLogs(prev => [...prev, logLine]);
-          }, index * 400); // 400ms diagnostic delay per security layer
+          }, index * 400);
         });
 
-        // Set state values once compilation animation resolves
         setTimeout(() => {
           if (data.success) {
             setExecutionMessage(`🎯 [Exchange] Trade Executed successfully! Order ID: ${data.orderId}`);
-            setAgentProposal(null); // Clear proposal on success
+            setAgentProposal(null);
           } else {
             setExecutionMessage(`❌ Blocked: ${data.error || "Handshake rejected."}`);
           }
@@ -326,7 +349,6 @@ export default function Dashboard() {
         }, data.logs.length * 400);
 
       } else {
-        // Fallback if no logs are returned
         if (data.success) {
           setExecutionMessage(`🎯 [Exchange] Trade Executed! Order ID: ${data.orderId}`);
           setAgentProposal(null);

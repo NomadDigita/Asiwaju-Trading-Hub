@@ -141,7 +141,7 @@ async function fetchDynamicLiveNews(): Promise<any[]> {
     });
 
     if (response.status === 200) {
-      const data = await response.status === 200 ? await response.json() : null;
+      const data = await response.json();
       if (data && Array.isArray(data.results)) {
         return data.results.map((r: any) => ({
           source: r.title ? r.title.slice(0, 15) : "Web News",
@@ -205,8 +205,13 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(parsed));
     }
 
-    // 2. Portfolio Audit Endpoint (Returns structured JSON based on dynamic inputs)
+    // 2. Portfolio Audit Endpoint (Returns structured JSON based on dynamic inputs and client-side history)
     if (url.pathname === '/api/audit' && req.method === 'POST') {
+      const { scoreHistory } = await getRequestBody(req);
+      const historyStr = Array.isArray(scoreHistory) && scoreHistory.length > 0
+        ? `[${scoreHistory.join(' -> ')}]`
+        : "No previous scores recorded.";
+
       let tradeLogPayload = "";
 
       try {
@@ -234,11 +239,14 @@ const server = http.createServer(async (req, res) => {
       }
 
       const systemPrompt = `You are the Lead Risk Auditor and Behavioral Trading Coach at Asiwaju AI Hub.
-      Analyze the user's trading log.
+      Analyze the user's trading log. Take into account their historical discipline score progression to write adaptive coaching.
+      
+      User's Historical Score Progress: ${historyStr}
+      
       You MUST respond in this exact JSON format (and absolutely no other conversational wrapper or markdown syntax):
       {
         "score": [Compute an integer score between 0 and 100 representing behavioral discipline based on the trade log],
-        "evaluation": "Sincere behavioral evaluation in 2 sentences",
+        "evaluation": "Sincere behavioral evaluation in 2 sentences, mentioning if their score is improving or declining based on history",
         "biases": ["FOMO", "Revenge Trading", "Panic Selling"],
         "criticalMistake": "Describe the worst transaction mistake in 1 sentence",
         "adjustments": [
@@ -364,7 +372,7 @@ const server = http.createServer(async (req, res) => {
             quantity: parseFloat(proposal.quantity)
           };
 
-          // Execute via Asiwaju Agent Shield SDK pipeline
+          // Secure trade execution using the Asiwaju Agent Shield SDK pipeline
           const shieldReport = await AsiwajuAgentShield.processSecureTrade(
             proposal.reason || "Execute manual web-dashboard approved transaction.",
             tradeRequest,
@@ -377,7 +385,7 @@ const server = http.createServer(async (req, res) => {
             promptSafety: shieldReport.promptSafety,
             riskGuardrail: shieldReport.riskGuardrail,
             orderId: shieldReport.orderId || null,
-            logs: shieldReport.logs, // Passing full execution traces to frontend client
+            logs: shieldReport.logs,
             error: shieldReport.success ? undefined : shieldReport.message
           }));
         } catch (execErr: any) {
