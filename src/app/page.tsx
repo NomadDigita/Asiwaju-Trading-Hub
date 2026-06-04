@@ -146,7 +146,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Dedicated High-Frequency Live Pulse Listener for the Market Indices Card (Completely decoupled from proposals)
+  // Dedicated High-Frequency Live Pulse Listener for the Market Indices Card
   useEffect(() => {
     const fetchLiveTickerFeed = async () => {
       try {
@@ -407,6 +407,71 @@ export default function Dashboard() {
   return (
     <div className="w-full mt-6 space-y-8 animate-fade-in-up">
       
+      {/* Dynamic Conic-Spin Rolling Neon Gradients Custom Styles */}
+      <style>{`
+        @keyframes conic-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .gemini-glow-card-committee,
+        .gemini-glow-card-guardian,
+        .gemini-glow-card-lab,
+        .gemini-glow-card-sentinel,
+        .gemini-glow-card-agent,
+        .gemini-glow-card-shield {
+          position: relative;
+          border-radius: 1.25rem;
+          padding: 1.5px;
+          overflow: hidden;
+          background: rgba(255,255,255,0.03);
+        }
+        .gemini-glow-card-committee::before,
+        .gemini-glow-card-guardian::before,
+        .gemini-glow-card-lab::before,
+        .gemini-glow-card-sentinel::before,
+        .gemini-glow-card-agent::before,
+        .gemini-glow-card-shield::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          animation: conic-spin 6s linear infinite;
+          z-index: 0;
+        }
+        /* War Room: Cyan-Magenta-Violet Spectrum */
+        .gemini-glow-card-committee::before {
+          background: conic-gradient(from 180deg at 50% 50%, #00f0ff 0deg, #a855f7 120deg, #ec4899 240deg, #00f0ff 360deg);
+        }
+        /* Guardian: Rose-Purple Spectrum */
+        .gemini-glow-card-guardian::before {
+          background: conic-gradient(from 180deg at 50% 50%, #f43f5e 0deg, #8b5cf6 180deg, #f43f5e 360deg);
+        }
+        /* Strategy Lab: Emerald-Cyan-Yellow Spectrum */
+        .gemini-glow-card-lab::before {
+          background: conic-gradient(from 180deg at 50% 50%, #10b981 0deg, #06b6d4 180deg, #fbbf24 360deg);
+        }
+        /* Sentinel: Amber-Cyan Spectrum */
+        .gemini-glow-card-sentinel::before {
+          background: conic-gradient(from 180deg at 50% 50%, #f59e0b 0deg, #00f0ff 180deg, #f59e0b 360deg);
+        }
+        /* AI Agent: Violet-Pink-Cyan Spectrum */
+        .gemini-glow-card-agent::before {
+          background: conic-gradient(from 180deg at 50% 50%, #8b5cf6 0deg, #ec4899 120deg, #00f0ff 240deg, #8b5cf6 360deg);
+        }
+        /* Shield SDK: Deep Cyan-Blue Spectrum */
+        .gemini-glow-card-shield::before {
+          background: conic-gradient(from 180deg at 50% 50%, #00f0ff 0deg, #3b82f6 180deg, #00f0ff 360deg);
+        }
+        .gemini-glow-card-inner {
+          position: relative;
+          background: #030206;
+          border-radius: 1.25rem;
+          z-index: 1;
+        }
+      `}</style>
+      
       {/* Scrollable Mobile Navigation Dock */}
       <nav className="flex justify-center max-w-full">
         <div className="flex items-center gap-1.5 p-1.5 bg-white/5 rounded-2xl border border-white/8 backdrop-blur-md overflow-x-auto max-w-full scrollbar-none whitespace-nowrap">
@@ -439,93 +504,102 @@ export default function Dashboard() {
         {/* TAB 1: WAR ROOM */}
         {activeTab === "committee" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Convene the AI Investment Committee</h3>
-                <p className="text-xs font-semibold text-white/90">Prompt parallel specialized analysts to debate market metrics & technical trend directions.</p>
-              </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <input
-                  type="text"
-                  value={coinInput}
-                  onChange={(e) => setCoinInput(e.target.value.toUpperCase())}
-                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-2.5 text-sm font-bold text-white w-24 text-center focus:outline-none focus:border-cyan-400"
-                />
-                <button
-                  onClick={handleConveneCommittee}
-                  disabled={committeeLoading}
-                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
-                >
-                  {committeeLoading ? "DeBATING..." : "Convene Committee"}
-                </button>
+            <div className="gemini-glow-card-committee">
+              <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Convene the AI Investment Committee</h3>
+                  <p className="text-xs font-semibold text-white/90">Prompt parallel specialized analysts to debate market metrics & technical trend directions.</p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <input
+                    type="text"
+                    value={coinInput}
+                    onChange={(e) => setCoinInput(e.target.value.toUpperCase())}
+                    className="bg-black/60 border border-white/12 rounded-xl px-4 py-2.5 text-sm font-bold text-white w-24 text-center focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    onClick={handleConveneCommittee}
+                    disabled={committeeLoading}
+                    className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
+                  >
+                    {committeeLoading ? "DeBATING..." : "Convene Committee"}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-cyan-400 font-bold">📈</span>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
+              <div className="gemini-glow-card-committee">
+                <div className="gemini-glow-card-inner p-4 md:p-6 min-h-[160px]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-cyan-400 font-bold">📈</span>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-white">Technical View</h4>
+                  </div>
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.tech}</p>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.tech}</p>
               </div>
 
-              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-medium" style={{ animationDelay: '1s' }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-rose-400 font-bold">🛡️</span>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
+              <div className="gemini-glow-card-committee">
+                <div className="gemini-glow-card-inner p-4 md:p-6 min-h-[160px]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-rose-400 font-bold">🛡️</span>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-white">Risk Warning</h4>
+                  </div>
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.risk}</p>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.risk}</p>
               </div>
 
-              <div className="glass-panel p-4 md:p-6 rounded-2xl glass-panel-hover float-card-slow" style={{ animationDelay: '2s' }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-emerald-400 font-bold">⛓️</span>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
+              <div className="gemini-glow-card-committee">
+                <div className="gemini-glow-card-inner p-4 md:p-6 min-h-[160px]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-emerald-400 font-bold">⛓️</span>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-white">On-Chain Activity</h4>
+                  </div>
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.chain}</p>
                 </div>
-                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">{committeeReport.chain}</p>
               </div>
             </div>
 
-            <div className="glass-panel p-4 md:p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">⚖️</span>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan">Chairman's Verdict: {coinInput}</h3>
-                    <p className="text-[10px] text-white/40 uppercase font-mono tracking-widest">Decision Resolution Module</p>
+            <div className="gemini-glow-card-committee">
+              <div className="gemini-glow-card-inner p-4 md:p-6 border-t border-cyan-500/20">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/5 pb-4 mb-4 gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⚖️</span>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan">Chairman's Verdict: {coinInput}</h3>
+                      <p className="text-[10px] text-white/40 uppercase font-mono tracking-widest">Decision Resolution Module</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/25 rounded-xl text-center">
+                      <div className="text-[10px] text-rose-300 uppercase tracking-widest">Rating</div>
+                      <div className="text-sm font-extrabold text-rose-400">{committeeReport.rating}</div>
+                    </div>
+                    <div className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center">
+                      <div className="text-[10px] text-cyan-300 uppercase tracking-widest font-mono">Confidence</div>
+                      <div className="text-sm font-extrabold text-cyan-400">{committeeReport.score}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/25 rounded-xl text-center">
-                    <div className="text-[10px] text-rose-300 uppercase tracking-widest">Rating</div>
-                    <div className="text-sm font-extrabold text-rose-400">{committeeReport.rating}</div>
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">
+                    <b>Synthesized Debate:</b> {committeeReport.debate}
+                  </p>
+                  <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
+                    <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
+                    <span className="text-xs font-bold text-white/95">{committeeReport.trigger}</span>
                   </div>
-                  <div className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center">
-                    <div className="text-[10px] text-cyan-300 uppercase tracking-widest font-mono">Confidence</div>
-                    <div className="text-sm font-extrabold text-cyan-400">{committeeReport.score}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <p className="text-xs font-semibold text-white/90 leading-relaxed text-glow-cyan">
-                  <b>Synthesized Debate:</b> {committeeReport.debate}
-                </p>
-                <div className="p-4 bg-black/50 rounded-xl border border-white/5 flex items-center gap-3">
-                  <span className="text-xs font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Trigger:</span>
-                  <span className="text-xs font-bold text-white/95">{committeeReport.trigger}</span>
-                </div>
 
-                {/* Collapsible Proof of Reasoning terminal block */}
-                <details className="group p-4 bg-black/60 rounded-xl border border-white/5 cursor-pointer">
-                  <summary className="flex items-center justify-between text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono select-none">
-                    <span>🧠 View Proof of Reasoning (Chain-of-Thought logs)</span>
-                    <span className="transition-transform duration-300 group-open:rotate-180">▼</span>
-                  </summary>
-                  <div className="mt-4 pt-4 border-t border-white/5 font-mono text-[10px] text-cyan-300/80 leading-relaxed space-y-2 whitespace-pre-line select-text">
-                    {committeeReport.reasoning}
-                  </div>
-                </details>
+                  <details className="group p-4 bg-black/60 rounded-xl border border-white/5 cursor-pointer">
+                    <summary className="flex items-center justify-between text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono select-none">
+                      <span>🧠 View Proof of Reasoning (Chain-of-Thought logs)</span>
+                      <span className="transition-transform duration-300 group-open:rotate-180">▼</span>
+                    </summary>
+                    <div className="mt-4 pt-4 border-t border-white/5 font-mono text-[10px] text-cyan-300/80 leading-relaxed space-y-2 whitespace-pre-line select-text">
+                      {committeeReport.reasoning}
+                    </div>
+                  </details>
+                </div>
               </div>
             </div>
           </div>
@@ -534,79 +608,85 @@ export default function Dashboard() {
         {/* TAB 2: GUARDIAN */}
         {activeTab === "guardian" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
-                <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
+            <div className="gemini-glow-card-guardian">
+              <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Portfolio Risk & Behavioral Auditor</h3>
+                  <p className="text-xs font-semibold text-white/90">Analyze exchange order books to locate psychological traps (FOMO, Revenge Trading).</p>
+                </div>
+                <button
+                  onClick={handleRunAudit}
+                  disabled={auditLoading}
+                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
+                >
+                  {auditLoading ? "AUDITING..." : "Run Portfolio Audit"}
+                </button>
               </div>
-              <button
-                onClick={handleRunAudit}
-                disabled={auditLoading}
-                className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
-              >
-                {auditLoading ? "AUDITING..." : "Run Portfolio Audit"}
-              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
-                <div>
-                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Behavioral Health</h3>
-                  <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Discipline Metric</p>
-                </div>
-
-                <div className="relative h-44 w-44 flex items-center justify-center">
-                  <svg className="absolute inset-0 h-full w-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
-                    <circle 
-                      cx="50" 
-                      cy="50" 
-                      r="40" 
-                      stroke="#f43f5e" 
-                      strokeWidth="8" 
-                      fill="transparent" 
-                      strokeDasharray="251.2"
-                      strokeDashoffset={251.2 - (251.2 * auditReport.score) / 100}
-                      className="transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                  <div className="text-center">
-                    <span className="text-4xl font-extrabold text-rose-500 text-glow-neon">{auditReport.score}</span>
-                    <span className="text-xs text-white/40 font-bold">/100</span>
+              <div className="gemini-glow-card-guardian">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col items-center justify-center text-center gap-6 min-h-[340px]">
+                  <div>
+                    <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Behavioral Health</h3>
+                    <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Discipline Metric</p>
                   </div>
-                </div>
 
-                <div className="px-3.5 py-1.5 bg-rose-500/10 border border-rose-500/25 rounded-xl text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
-                  Behavioral Health Matrix
+                  <div className="relative h-44 w-44 flex items-center justify-center">
+                    <svg className="absolute inset-0 h-full w-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="40" 
+                        stroke="#f43f5e" 
+                        strokeWidth="8" 
+                        fill="transparent" 
+                        strokeDasharray="251.2"
+                        strokeDashoffset={251.2 - (251.2 * auditReport.score) / 100}
+                        className="transition-all duration-1000 ease-out"
+                      />
+                    </svg>
+                    <div className="text-center">
+                      <span className="text-4xl font-extrabold text-rose-500 text-glow-neon">{auditReport.score}</span>
+                      <span className="text-xs text-white/40 font-bold">/100</span>
+                    </div>
+                  </div>
+
+                  <div className="px-3.5 py-1.5 bg-rose-500/10 border border-rose-500/25 rounded-xl text-[10px] font-extrabold text-rose-400 uppercase tracking-widest">
+                    Behavioral Health Matrix
+                  </div>
                 </div>
               </div>
 
-              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium">
-                <div>
-                  <h3 className="text-sm font-extrabold text-white uppercase tracking-widest border-b border-white/5 pb-3 mb-4 text-glow-cyan">Detected Psychological Biases</h3>
-                  <p className="text-xs font-semibold text-white/90 leading-relaxed mb-4">{auditReport.evaluation}</p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {auditReport.biases.map((bias, i) => (
-                      <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-white/95">
-                        ⚠️ {bias}
-                      </span>
+              <div className="gemini-glow-card-guardian md:col-span-2">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col justify-between min-h-[340px] gap-6">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white uppercase tracking-widest border-b border-white/5 pb-3 mb-4 text-glow-cyan">Detected Psychological Biases</h3>
+                    <p className="text-xs font-semibold text-white/90 leading-relaxed mb-4">{auditReport.evaluation}</p>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {auditReport.biases.map((bias, i) => (
+                        <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-white/95">
+                          ⚠️ {bias}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/15 rounded-xl">
+                      <p className="text-xs text-rose-300 font-bold">Critical Error:</p>
+                      <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{auditReport.criticalMistake}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/5">
+                    {auditReport.adjustments.map((adj, i) => (
+                      <div key={i} className="p-3 bg-black/50 rounded-xl border border-white/5">
+                        <h4 className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">{i + 1}. {adj.title}</h4>
+                        <p className="text-[10px] font-semibold text-white/80 leading-relaxed mt-1">{adj.desc}</p>
+                      </div>
                     ))}
                   </div>
-
-                  <div className="p-4 bg-rose-500/10 border border-rose-500/15 rounded-xl">
-                    <p className="text-xs text-rose-300 font-bold">Critical Error:</p>
-                    <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{auditReport.criticalMistake}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/5">
-                  {auditReport.adjustments.map((adj, i) => (
-                    <div key={i} className="p-3 bg-black/50 rounded-xl border border-white/5">
-                      <h4 className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">{i + 1}. {adj.title}</h4>
-                      <p className="text-[10px] font-semibold text-white/80 leading-relaxed mt-1">{adj.desc}</p>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -616,76 +696,81 @@ export default function Dashboard() {
         {/* TAB 3: THE STRATEGY LAB */}
         {activeTab === "lab" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 float-card-medium">
-              <div className="flex flex-col gap-1 w-full">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Strategy Lab Compiler</h3>
-                <input
-                  type="text"
-                  value={strategyInput}
-                  onChange={(e) => setStrategyInput(e.target.value)}
-                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-3 text-xs font-semibold text-white/90 w-full focus:outline-none focus:border-cyan-400 mt-2"
-                />
+            <div className="gemini-glow-card-lab">
+              <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col gap-1 w-full">
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">Strategy Lab Compiler</h3>
+                  <input
+                    type="text"
+                    value={strategyInput}
+                    onChange={(e) => setStrategyInput(e.target.value)}
+                    className="bg-black/60 border border-white/12 rounded-xl px-4 py-3 text-xs font-semibold text-white/90 w-full focus:outline-none focus:border-cyan-400 mt-2"
+                  />
+                </div>
+                <button
+                  onClick={handleCompileStrategy}
+                  disabled={strategyLoading}
+                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 h-11 shrink-0 self-end cursor-pointer"
+                >
+                  {strategyLoading ? "COMPILING..." : "Compile & Run"}
+                </button>
               </div>
-              <button
-                onClick={handleCompileStrategy}
-                disabled={strategyLoading}
-                className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 h-11 shrink-0 self-end cursor-pointer"
-              >
-                {strategyLoading ? "COMPILING..." : "Compile & Run"}
-              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col h-[400px] float-card-slow">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Generated Python Code</h4>
-                <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5">
-                  <pre>{strategyReport.code}</pre>
+              <div className="gemini-glow-card-lab md:col-span-2">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col h-[400px]">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Generated Python Code</h4>
+                  <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5">
+                    <pre>{strategyReport.code}</pre>
+                  </div>
                 </div>
               </div>
 
-              <div className="glass-panel p-4 md:p-6 rounded-2xl flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white border-b border-white/5 pb-2 text-glow-cyan">Simulated Backtest</h4>
-                
-                {/* Dynamic SVG Neon Equity Curve Chart */}
-                <div className="w-full h-24 mb-4 relative overflow-hidden bg-black/30 rounded-xl border border-white/5 p-2 flex items-center justify-center">
-                  <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: `radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
-                  <svg className="w-full h-full" viewBox="0 0 300 80">
-                    <defs>
-                      <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#00f0ff" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#00f0ff" stopOpacity="0.0" />
-                      </linearGradient>
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00f0ff" floodOpacity="0.6" />
-                      </filter>
-                    </defs>
-                    <path d={generateSvgAreaPath(strategyReport.pnl, 300, 80)} fill="url(#chart-gradient)" />
-                    <path d={generateSvgPath(strategyReport.pnl, 300, 80)} fill="none" stroke="#00f0ff" strokeWidth="2.5" filter="url(#glow)" />
-                  </svg>
-                </div>
+              <div className="gemini-glow-card-lab">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col justify-between h-[400px] gap-6">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-white border-b border-white/5 pb-2 text-glow-cyan">Simulated Backtest</h4>
+                  
+                  <div className="w-full h-24 mb-4 relative overflow-hidden bg-black/30 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                    <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: `radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)`, backgroundSize: '16px 16px' }} />
+                    <svg className="w-full h-full" viewBox="0 0 300 80">
+                      <defs>
+                        <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#00f0ff" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#00f0ff" stopOpacity="0.0" />
+                        </linearGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00f0ff" floodOpacity="0.6" />
+                        </filter>
+                      </defs>
+                      <path d={generateSvgAreaPath(strategyReport.pnl, 300, 80)} fill="url(#chart-gradient)" />
+                      <path d={generateSvgPath(strategyReport.pnl, 300, 80)} fill="none" stroke="#00f0ff" strokeWidth="2.5" filter="url(#glow)" />
+                    </svg>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Win Rate</span>
-                    <div className="text-lg font-extrabold text-cyan-400">{strategyReport.winRate}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Win Rate</span>
+                      <div className="text-lg font-extrabold text-cyan-400">{strategyReport.winRate}</div>
+                    </div>
+                    <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Net Profit</span>
+                      <div className="text-lg font-extrabold text-emerald-400">{strategyReport.pnl}</div>
+                    </div>
+                    <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Drawdown</span>
+                      <div className="text-lg font-extrabold text-rose-400">{strategyReport.drawdown}</div>
+                    </div>
+                    <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Profit Factor</span>
+                      <div className="text-lg font-extrabold text-amber-400">{strategyReport.factor}</div>
+                    </div>
                   </div>
-                  <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Net Profit</span>
-                    <div className="text-lg font-extrabold text-emerald-400">{strategyReport.pnl}</div>
-                  </div>
-                  <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Drawdown</span>
-                    <div className="text-lg font-extrabold text-rose-400">{strategyReport.drawdown}</div>
-                  </div>
-                  <div className="p-3 bg-black/50 rounded-xl border border-white/5 text-center">
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Profit Factor</span>
-                    <div className="text-lg font-extrabold text-amber-400">{strategyReport.factor}</div>
-                  </div>
-                </div>
 
-                <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
-                  <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-wider font-mono">Quant Verdict:</span>
-                  <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{strategyReport.verdict}</p>
+                  <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
+                    <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-wider font-mono">Quant Verdict:</span>
+                    <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{strategyReport.verdict}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -695,72 +780,78 @@ export default function Dashboard() {
         {/* TAB 4: THE SENTINEL */}
         {activeTab === "sentinel" && (
           <div className="space-y-6">
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Sentinel News & Macro Analyst</h3>
-                <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
+            <div className="gemini-glow-card-sentinel">
+              <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider font-mono">Sentinel News & Macro Analyst</h3>
+                  <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
+                </div>
+                <button
+                  onClick={handleRunSentinel}
+                  disabled={sentinelLoading}
+                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
+                >
+                  {sentinelLoading ? "INDEXING..." : "Scan Market News"}
+                </button>
               </div>
-              <button
-                onClick={handleRunSentinel}
-                disabled={sentinelLoading}
-                className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer"
-              >
-                {sentinelLoading ? "INDEXING..." : "Scan Market News"}
-              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col items-center justify-center text-center gap-6 float-card-slow">
-                <div>
-                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Market Hype Index</h3>
-                  <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Fear & Greed Hybrid</p>
-                </div>
-
-                <div className="relative h-44 w-44 flex items-center justify-center">
-                  <svg className="absolute inset-0 h-full w-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
-                    <circle 
-                      cx="50" 
-                      cy="50" 
-                      r="40" 
-                      stroke="#00f0ff" 
-                      strokeWidth="8" 
-                      fill="transparent" 
-                      strokeDasharray="251.2"
-                      strokeDashoffset={251.2 - (251.2 * sentinelReport.index) / 100}
-                      className="transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(0,240,255,0.4)]"
-                    />
-                  </svg>
-                  <div className="text-center">
-                    <span className="text-4xl font-extrabold text-cyan-400 text-glow-cyan">{sentinelReport.index}</span>
-                    <span className="text-xs text-white/40 font-bold">/100</span>
+              <div className="gemini-glow-card-sentinel">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col items-center justify-center text-center gap-6 min-h-[340px]">
+                  <div>
+                    <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Market Hype Index</h3>
+                    <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Fear & Greed Hybrid</p>
                   </div>
-                </div>
 
-                <div className="px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest animate-pulse">
-                  {sentinelReport.rating}
+                  <div className="relative h-44 w-44 flex items-center justify-center">
+                    <svg className="absolute inset-0 h-full w-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="40" 
+                        stroke="#00f0ff" 
+                        strokeWidth="8" 
+                        fill="transparent" 
+                        strokeDasharray="251.2"
+                        strokeDashoffset={251.2 - (251.2 * sentinelReport.index) / 100}
+                        className="transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+                      />
+                    </svg>
+                    <div className="text-center">
+                      <span className="text-4xl font-extrabold text-cyan-400 text-glow-cyan">{sentinelReport.index}</span>
+                      <span className="text-xs text-white/40 font-bold">/100</span>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest animate-pulse">
+                    {sentinelReport.rating}
+                  </div>
                 </div>
               </div>
 
-              <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-medium" style={{ animationDelay: '0.5s' }}>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Major Sentiment Drivers</h4>
-                  <div className="space-y-4">
-                    {sentinelReport.drivers.map((drv, i) => (
-                      <div key={i} className="flex items-start gap-3.5">
-                        <span className="text-cyan-400 font-bold mt-0.5">⚡</span>
-                        <div>
-                          <h5 className="text-xs font-extrabold text-white uppercase tracking-wider">{drv.event}</h5>
-                          <p className="text-[11px] font-semibold text-white/90 leading-relaxed mt-0.5">{drv.desc}</p>
+              <div className="gemini-glow-card-sentinel md:col-span-2">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col justify-between min-h-[340px] gap-6" style={{ animationDelay: '0.5s' }}>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Major Sentiment Drivers</h4>
+                    <div className="space-y-4">
+                      {sentinelReport.drivers.map((drv, i) => (
+                        <div key={i} className="flex items-start gap-3.5">
+                          <span className="text-cyan-400 font-bold mt-0.5">⚡</span>
+                          <div>
+                            <h5 className="text-xs font-extrabold text-white uppercase tracking-wider">{drv.event}</h5>
+                            <p className="text-[11px] font-semibold text-white/90 leading-relaxed mt-0.5">{drv.desc}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
-                  <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Tactical Sentiment Advisory:</span>
-                  <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{sentinelReport.tactical}</p>
+                  <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
+                    <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Tactical Sentiment Advisory:</span>
+                    <p className="text-[10px] font-semibold text-white/90 leading-relaxed mt-1">{sentinelReport.tactical}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -769,153 +860,163 @@ export default function Dashboard() {
 
         {/* TAB 5: THE AI AGENT */}
         {activeTab === "agent" && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6">
             
-            {/* Separate Live Market Card (CEX+DEX Decoupled price indices) */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 select-none">
-              {Object.entries(marketPrices).map(([coin, price]) => (
-                <div key={coin} className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    <span className="text-[10px] font-extrabold text-white tracking-widest uppercase font-mono">{coin}</span>
+            {/* Separate Live Market Card (Decoupled conic spinning gradient border) */}
+            <div className="gemini-glow-card-agent">
+              <div className="gemini-glow-card-inner p-4 grid grid-cols-2 md:grid-cols-5 gap-3 select-none">
+                {Object.entries(marketPrices).map(([coin, price]) => (
+                  <div key={coin} className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                      <span className="text-[10px] font-extrabold text-white tracking-widest uppercase font-mono">{coin}</span>
+                    </div>
+                    <span className="text-xs font-bold text-cyan-300 font-mono">${price}</span>
                   </div>
-                  <span className="text-xs font-bold text-cyan-300 font-mono">${price}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="glass-panel-highlight p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
-                <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
-              </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <input
-                  type="text"
-                  value={coinInput}
-                  onChange={(e) => setCoinInput(e.target.value.toUpperCase())}
-                  className="bg-black/60 border border-white/12 rounded-xl px-4 py-2.5 text-sm font-bold text-white w-24 text-center focus:outline-none focus:border-cyan-400"
-                />
-                <button
-                  onClick={handleAgentScan}
-                  disabled={agentLoading}
-                  className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                >
-                  {agentLoading ? "SCANNING..." : "Scan Market Opportunity"}
-                </button>
+            <div className="gemini-glow-card-agent">
+              <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
+                  <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <input
+                    type="text"
+                    value={coinInput}
+                    onChange={(e) => setCoinInput(e.target.value.toUpperCase())}
+                    className="bg-black/60 border border-white/12 rounded-xl px-4 py-2.5 text-sm font-bold text-white w-24 text-center focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    onClick={handleAgentScan}
+                    disabled={agentLoading}
+                    className="bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                  >
+                    {agentLoading ? "SCANNING..." : "Scan Market Opportunity"}
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {agentProposal ? (
-                <div className="glass-panel p-4 md:p-6 rounded-2xl md:col-span-2 flex flex-col justify-between gap-6 float-card-slow">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">🤖</span>
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-white text-glow-cyan">Pending Trade Proposal</h4>
-                          <p className="text-[9px] text-white/40 uppercase font-mono tracking-widest">Autonomous Detection Module</p>
+                <div className="gemini-glow-card-agent md:col-span-2">
+                  <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col justify-between h-[480px] gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">🤖</span>
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-white text-glow-cyan">Pending Trade Proposal</h4>
+                            <p className="text-[9px] text-white/40 uppercase font-mono tracking-widest">Autonomous Detection Module</p>
+                          </div>
+                        </div>
+                        <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest animate-pulse">
+                          Awaiting Permission
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest animate-pulse">
-                        Awaiting Permission
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Asset</span>
-                        <div className="text-sm font-bold text-white mt-0.5">{agentProposal.symbol}</div>
-                      </div>
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Action</span>
-                        <div className={`text-sm font-bold mt-0.5 uppercase ${agentProposal.side === 'buy' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {agentProposal.side}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Asset</span>
+                          <div className="text-sm font-bold text-white mt-0.5">{agentProposal.symbol}</div>
+                        </div>
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Action</span>
+                          <div className={`text-sm font-bold mt-0.5 uppercase ${agentProposal.side === 'buy' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {agentProposal.side}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Price</span>
+                          <div className="text-sm font-bold text-cyan-400 mt-0.5">${parseFloat(agentProposal.price).toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Quantity</span>
+                          <div className="text-sm font-bold text-white mt-0.5">{agentProposal.quantity}</div>
                         </div>
                       </div>
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Price</span>
-                        <div className="text-sm font-bold text-cyan-400 mt-0.5">${parseFloat(agentProposal.price).toFixed(2)}</div>
-                      </div>
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Quantity</span>
-                        <div className="text-sm font-bold text-white mt-0.5">{agentProposal.quantity}</div>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Take Profit Target</span>
-                        <div className="text-sm font-bold text-emerald-400 mt-0.5">${parseFloat(agentProposal.takeProfit).toFixed(2)}</div>
-                      </div>
-                      <div className="p-3 bg-black/50 rounded-xl border border-white/5">
-                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Stop Loss Invalidation</span>
-                        <div className="text-sm font-bold text-rose-400 mt-0.5">${parseFloat(agentProposal.stopLoss).toFixed(2)}</div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
-                      <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Justification Brief:</span>
-                      <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{agentProposal.reason}</p>
-                    </div>
-
-                    {/* Autopilot Control Card */}
-                    <div className="p-4 bg-violet-600/10 border border-violet-500/20 rounded-xl flex items-center justify-between mt-4">
-                      <div className="flex items-center gap-3">
-                        <span className={`h-3 w-3 rounded-full ${isAutopilot ? 'bg-emerald-400 animate-pulse' : 'bg-white/10'}`} />
-                        <div>
-                          <h4 className="text-[10px] font-extrabold text-white tracking-wide">Autopilot Execution Mode</h4>
-                          <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals [4].</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Take Profit Target</span>
+                          <div className="text-sm font-bold text-emerald-400 mt-0.5">${parseFloat(agentProposal.takeProfit).toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 bg-black/50 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Stop Loss Invalidation</span>
+                          <div className="text-sm font-bold text-rose-400 mt-0.5">${parseFloat(agentProposal.stopLoss).toFixed(2)}</div>
                         </div>
                       </div>
-                      <button
-                        onClick={handleAutopilotToggle}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
-                          ${isAutopilot 
-                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
-                            : 'bg-white/5 border-white/10 text-white/40'
-                          }`}
-                      >
-                        {isAutopilot ? 'ON' : 'OFF'}
-                      </button>
+
+                      <div className="p-4 bg-cyan-500/5 rounded-xl border border-cyan-500/10">
+                        <span className="text-[9px] font-extrabold text-cyan-400 uppercase tracking-widest font-mono">Justification Brief:</span>
+                        <p className="text-xs font-semibold text-white/90 leading-relaxed mt-1">{agentProposal.reason}</p>
+                      </div>
+
+                      {/* Autopilot Control Card */}
+                      <div className="p-4 bg-violet-600/10 border border-violet-500/20 rounded-xl flex items-center justify-between mt-4">
+                        <div className="flex items-center gap-3">
+                          <span className={`h-3 w-3 rounded-full ${isAutopilot ? 'bg-emerald-400 animate-pulse' : 'bg-white/10'}`} />
+                          <div>
+                            <h4 className="text-[10px] font-extrabold text-white tracking-wide">Autopilot Execution Mode</h4>
+                            <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals [4].</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleAutopilotToggle}
+                          className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all duration-300 cursor-pointer
+                            ${isAutopilot 
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+                              : 'bg-white/5 border-white/10 text-white/40'
+                            }`}
+                        >
+                          {isAutopilot ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+
                     </div>
 
+                    <button
+                      onClick={handleExecuteTrade}
+                      disabled={agentLoading}
+                      className="w-full py-4 bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                    >
+                      {agentLoading ? "BROADCASTING TRANSACTION..." : "⚡ Approve & Execute Transaction"}
+                    </button>
                   </div>
-
-                  <button
-                    onClick={handleExecuteTrade}
-                    disabled={agentLoading}
-                    className="w-full py-4 bg-cyan-500 border border-cyan-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                  >
-                    {agentLoading ? "BROADCASTING TRANSACTION..." : "⚡ Approve & Execute Transaction"}
-                  </button>
                 </div>
               ) : (
-                <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col items-center justify-center text-center py-20 float-card-slow">
-                  <span className="text-3xl mb-3">⚪</span>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Active Proposal Staged</h4>
-                  <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click "Scan Market" to prompt the AI agent to look for trades.</p>
+                <div className="gemini-glow-card-agent md:col-span-2">
+                  <div className="gemini-glow-card-inner p-6 flex flex-col items-center justify-center text-center h-[480px]">
+                    <span className="text-3xl mb-3">⚪</span>
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">No Active Proposal Staged</h4>
+                    <p className="text-xs text-white/50 max-w-sm mt-1 leading-relaxed">Enter an asset symbol like SOL and click "Scan Market" to prompt the AI agent to look for trades.</p>
+                  </div>
                 </div>
               )}
 
               {/* Right Column: Execution Log Console with Live SDK Observability */}
-              <div className="glass-panel p-6 rounded-2xl flex flex-col h-[400px] float-card-medium" style={{ animationDelay: '0.5s' }}>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
-                <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
-                  <div className="space-y-1.5 select-text">
-                    <div className="text-cyan-600">&gt; Initializing agent execution logger...</div>
-                    <div className="text-white/40">&gt; Awaiting order permission signals...</div>
-                    {terminalLogs.map((log, i) => (
-                      <div key={i} className="text-cyan-400/90 leading-tight">
-                        &gt; {log}
-                      </div>
-                    ))}
-                    {executionMessage && (
-                      <div className="text-emerald-400 mt-4 animate-pulse font-bold">&gt; {executionMessage}</div>
-                    )}
+              <div className="gemini-glow-card-agent">
+                <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col h-[480px] justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-4 border-b border-white/5 pb-2 text-glow-cyan">Agent Execution Terminal</h4>
+                  <div className="flex-1 bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 overflow-y-auto leading-relaxed border border-white/5 flex flex-col justify-between">
+                    <div className="space-y-1.5 select-text">
+                      <div className="text-cyan-600">&gt; Initializing agent execution logger...</div>
+                      <div className="text-white/40">&gt; Awaiting order permission signals...</div>
+                      {terminalLogs.map((log, i) => (
+                        <div key={i} className="text-cyan-400/90 leading-tight">
+                          &gt; {log}
+                        </div>
+                      ))}
+                      {executionMessage && (
+                        <div className="text-emerald-400 mt-4 animate-pulse font-bold">&gt; {executionMessage}</div>
+                      )}
+                    </div>
+                    <div className="text-[9px] text-white/20 uppercase tracking-widest font-mono select-none mt-2">ASIWAJU_TERMINAL_OUT</div>
                   </div>
-                  <div className="text-[9px] text-white/20 uppercase tracking-widest font-mono select-none mt-2">ASIWAJU_TERMINAL_OUT</div>
                 </div>
               </div>
 
@@ -927,67 +1028,73 @@ export default function Dashboard() {
         {activeTab === "shield" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel-highlight p-6 rounded-2xl flex flex-col justify-between h-[280px] float-card-slow">
-                <div>
-                  <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Asiwaju Agent Shield</h3>
-                  <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Zero-Trust Guardrail SDK</p>
-                </div>
-                <div className="space-y-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="text-xs font-bold text-emerald-400">🛡️ AI Firewall: ACTIVE</span>
+              <div className="gemini-glow-card-shield">
+                <div className="gemini-glow-card-inner p-6 flex flex-col justify-between h-[280px]">
+                  <div>
+                    <h3 className="text-xs font-extrabold text-white uppercase tracking-wider text-glow-cyan">Asiwaju Agent Shield</h3>
+                    <p className="text-[10px] text-white/40 uppercase font-mono mt-1">Zero-Trust Guardrail SDK</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-400">🔒 Code Guardrails: ENFORCED</span>
+                  <div className="space-y-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="text-xs font-bold text-emerald-400">🛡️ AI Firewall: ACTIVE</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                      <span className="text-xs font-bold text-emerald-400">🔒 Code Guardrails: ENFORCED</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
+                      <span className="text-xs font-bold text-cyan-400">🛰️ Key Vault Isolation: ARMED</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
-                    <span className="text-xs font-bold text-cyan-400">🛰️ Key Vault Isolation: ARMED</span>
+                  <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
+                    SDK VERSION: 1.0.0 (STABLE)
                   </div>
-                </div>
-                <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
-                  SDK VERSION: 1.0.0 (STABLE)
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-2xl md:col-span-2 flex flex-col justify-between h-[280px] float-card-medium" style={{ animationDelay: '0.5s' }}>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-3 text-glow-cyan">Enforced Safety Guardrail Parameters</h4>
-                  <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides [4].</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Trade Size</span>
-                      <div className="text-xs font-extrabold text-rose-400 mt-1">$10.00 USD Max [4]</div>
-                    </div>
-                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Approved Assets</span>
-                      <div className="text-[10px] font-bold text-cyan-400 mt-1">BTC, SOL, ETH [4]</div>
-                    </div>
-                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Rate-Limit Cooldown</span>
-                      <div className="text-xs font-extrabold text-amber-400 mt-1">30 Seconds [4]</div>
+              <div className="gemini-glow-card-shield md:col-span-2">
+                <div className="gemini-glow-card-inner p-6 flex flex-col justify-between h-[280px]" style={{ animationDelay: '0.5s' }}>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-3 text-glow-cyan">Enforced Safety Guardrail Parameters</h4>
+                    <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides [4].</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Trade Size</span>
+                        <div className="text-xs font-extrabold text-rose-400 mt-1">$10.00 USD Max [4]</div>
+                      </div>
+                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Approved Assets</span>
+                        <div className="text-[10px] font-bold text-cyan-400 mt-1">BTC, SOL, ETH [4]</div>
+                      </div>
+                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Rate-Limit Cooldown</span>
+                        <div className="text-xs font-extrabold text-amber-400 mt-1">30 Seconds [4]</div>
+                      </div>
                     </div>
                   </div>
+                  <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">GUARD_REGISTRY_OUT</span>
                 </div>
-                <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">GUARD_REGISTRY_OUT</span>
               </div>
             </div>
 
-            <div className="glass-panel p-6 rounded-2xl border-t border-cyan-500/20 float-card-slow">
-              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan mb-4">AAS SDK Developer Integration Guide</h3>
-              <div className="space-y-4">
-                <p className="text-xs font-semibold text-white/90 leading-relaxed">
-                  The **Asiwaju Agent Shield (AAS) SDK** is designed for low-friction developer onboarding [4]. Any developer building autonomous trading agents on Bitget can protect their keys and prevent prompt injections by importing the SDK into their main event loop [4].
-                </p>
-                <div className="bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 leading-relaxed border border-white/5 overflow-x-auto">
-                  <pre>
+            <div className="gemini-glow-card-shield">
+              <div className="gemini-glow-card-inner p-6 border-t border-cyan-500/20">
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan mb-4">AAS SDK Developer Integration Guide</h3>
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-white/90 leading-relaxed">
+                    The **Asiwaju Agent Shield (AAS) SDK** is designed for low-friction developer onboarding [4]. Any developer building autonomous trading agents on Bitget can protect their keys and prevent prompt injections by importing the SDK into their main event loop [4].
+                  </p>
+                  <div className="bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 leading-relaxed border border-white/5 overflow-x-auto">
+                    <pre>
 {`import { AsiwajuAgentShield } from './infra/ShieldSDK';
 import { TradeRequest } from './infra/RiskGuardrail';
 
 // Intercept your agent's transaction payloads securely
 const report = await AsiwajuAgentShield.processSecureTrade(userPrompt, tradeRequest);`}
                   </pre>
+                  </div>
                 </div>
               </div>
             </div>
