@@ -41,39 +41,28 @@ function extractShieldJson(rawText: string): any {
   return JSON.parse(jsonString);
 }
 
-// Map standard symbols to CoinGecko simple-price API identifier parameters
-const COINGECKO_MAP: Record<string, string> = {
-  BTC: "bitcoin",
-  ETH: "ethereum",
-  SOL: "solana",
-  BNB: "binancecoin",
-  BGB: "bitget-token"
-};
-
-// 1. Perception Layer: Multi-Exchange CEX + DEX Price Aggregator (Bypasses symbol collisions and geoblocks)
+// 1. Perception Layer: Multi-Exchange Price Feed (Queries Bitget Public API first to resolve BGB/BNB accurately)
 async function getLivePrice(symbol: string): Promise<string> {
   const ticker = symbol.replace("USDT", "").toUpperCase();
   console.log(`🔍 [DIAGNOSTIC] Perception check: Pulling live pricing feed for ${ticker}...`);
 
-  // Step A: Attempt CoinGecko simple-price query for index-grade accurate feeds
-  const coingeckoId = COINGECKO_MAP[ticker];
-  if (coingeckoId) {
-    try {
-      const cgRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`);
-      if (cgRes.status === 200) {
-        const cgData = await cgRes.json();
-        if (cgData && cgData[coingeckoId] && cgData[coingeckoId].usd) {
-          const price = cgData[coingeckoId].usd.toString();
-          console.log(`🎯 [CoinGecko Feed] Index price resolved for ${ticker} at $${parseFloat(price).toFixed(4)}`);
-          return price;
-        }
+  // Step A: Query Bitget Public Spot Ticker API directly (Rate-limit free, resolved BGB and BNB perfectly)
+  try {
+    const requestPath = `/api/v2/spot/market/tickers?symbol=${symbol.toUpperCase()}`;
+    const response = await fetch('https://api.bitget.com' + requestPath);
+    if (response.status === 200) {
+      const result = await response.json();
+      if (result.code === '00000' && Array.isArray(result.data) && result.data[0]) {
+        const price = result.data[0].lastPr;
+        console.log(`🎯 [Bitget Public Feed] Resolved ${symbol} price at $${parseFloat(price).toFixed(4)}`);
+        return price;
       }
-    } catch (cgErr: any) {
-      console.warn(`⚠️ [CoinGecko Feed] Index price fetch failed for ${ticker}:`, cgErr.message);
     }
+  } catch (bitgetErr: any) {
+    console.warn(`⚠️ [Bitget Feed] Public ticker query failed for ${symbol}:`, bitgetErr.message);
   }
 
-  // Step B: Attempt secondary query via Binance CEX API
+  // Step B: Secondary Fallback via Binance CEX API
   try {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}`);
     if (res.status === 200) {
@@ -87,9 +76,9 @@ async function getLivePrice(symbol: string): Promise<string> {
     console.warn(`⚠️ [CEX Feed] Binance ticker failed for ${symbol}: ${cexErr.message}`);
   }
 
-  // Step C: Multi-Exchange DEX Fallback (DEXScreener API) for custom DeFi tokens
+  // Step C: DEXScreener Fallback for custom DeFi tokens
   try {
-    console.log(`🛰️ [DEX Fallback] Querying DeFi Liquidity pools for ${ticker}...`);
+    console.log(`🛰️ [DEX Fallback] Querying DEXScreener pools for ${ticker}...`);
     const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`);
     if (dexRes.status === 200) {
       const dexData = await dexRes.json();
@@ -102,7 +91,7 @@ async function getLivePrice(symbol: string): Promise<string> {
       }
     }
   } catch (dexErr: any) {
-    console.error(`❌ [DEX Feed] DeFi liquidity query failed for ${ticker}:`, dexErr.message);
+    console.error(`❌ [DEX Feed] DEXScreener pool query failed for ${ticker}:`, dexErr.message);
   }
 
   return symbol.startsWith("BTC") ? "68250.00" : symbol.startsWith("ETH") ? "3740.00" : "1.25";
@@ -113,7 +102,6 @@ async function getMarketRegime(symbol: string): Promise<RegimeReport> {
   const ticker = symbol.replace("USDT", "").toUpperCase();
   console.log(`🔍 [DIAGNOSTIC] Regime check: Analyzing volatility profile for ${ticker}...`);
 
-  // Attempt to parse 24h ticker data from Binance
   try {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
     if (res.status === 200) {
@@ -134,7 +122,6 @@ async function getMarketRegime(symbol: string): Promise<RegimeReport> {
     console.warn(`⚠️ [Regime CEX Feed] Failed to fetch 24h ticker for ${symbol}. Trying DEXScreener data...`);
   }
 
-  // Fallback to DEXScreener 24h price change data
   try {
     const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`);
     if (dexRes.status === 200) {
@@ -172,7 +159,7 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
   const marketRegime = await getMarketRegime(symbol);
 
-  console.log(`🔍 [DIAGNOSTIC] Querying Sentinel for dynamic market sentiment feedstock...`);
+  console.log(`🔍 [DIAGNOSTIC] Querying Sentinel for dynamic market feedstock...`);
   let sentimentSummary = "Macro indicators ranging.";
   try {
     const sentinelData = await runNewsAudit();

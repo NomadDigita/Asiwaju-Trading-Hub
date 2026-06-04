@@ -9,6 +9,9 @@ import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
 import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, TradeProposal } from './utils/agent';
 
+// Import Shield SDK to secure Bot executions
+import { AsiwajuAgentShield } from './infra/ShieldSDK';
+
 // Verify Bot Token
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
@@ -270,7 +273,7 @@ bot.command('trade', async (ctx) => {
   }
 });
 
-// 8. Autonomous Agent Trading Execution Command
+// 8. Autonomous Agent Trading Execution Command (Secured via AAS SDK pipeline)
 bot.command('approve', async (ctx) => {
   const proposal = pendingProposals.get(ctx.chat.id);
 
@@ -278,21 +281,39 @@ bot.command('approve', async (ctx) => {
     return ctx.reply("❌ Error: No pending trade proposal found. Run `/trade <coin>` first to scan.");
   }
 
-  ctx.reply(`⚡ Permission granted. Broadcasting signed market order to Bitget Spot V2...`);
+  ctx.reply(`⚡ Permission granted. Initializing Asiwaju Agent Shield SDK pipeline on-server...`);
 
   try {
-    const executionResult = await executeApprovedTrade(proposal);
-    const [status, details] = executionResult.split(":");
+    const tradeRequest = {
+      symbol: proposal.symbol,
+      side: proposal.side as 'buy' | 'sell',
+      price: parseFloat(proposal.price),
+      quantity: parseFloat(proposal.quantity)
+    };
 
-    if (status === "SUCCESS") {
-      ctx.reply(`🎯 **Trade Executed Live!** 🎯\n\nOrder ID: \`${details}\``, { parse_mode: 'Markdown' });
+    // Execute through the official secure Shield SDK pipeline (No bypass)
+    const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+      proposal.reason,
+      tradeRequest,
+      `telegram_sig_${Date.now()}` // Generate secure unique signature nonce
+    );
+
+    let logsMessage = "🔒 *Asiwaju Agent Shield Security Report*\n\n";
+    shieldReport.logs.forEach((logLine: string) => {
+      logsMessage += `• ${logLine}\n`;
+    });
+
+    if (shieldReport.success) {
+      logsMessage += `\n🎯 **Trade Executed Live!**\nOrder ID: \`${shieldReport.orderId}\``;
       pendingProposals.delete(ctx.chat.id); // Clear proposal memory on success
     } else {
-      ctx.reply(`❌ Order placement failed: ${details}`);
+      logsMessage += `\n❌ **AAS Shield BLOCKED:** ${shieldReport.message}`;
     }
-  } catch (error) {
+
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(logsMessage));
+  } catch (error: any) {
     console.error(error);
-    ctx.reply("❌ Handshake timeout. Transaction rejected.");
+    ctx.reply(`❌ Handshake timeout or exception: ${error.message || 'Transaction rejected.'}`);
   }
 });
 
@@ -300,7 +321,7 @@ bot.command('approve', async (ctx) => {
 bot.command('autopilot', async (ctx) => {
   const messageText = ctx.message?.text || '';
   const args = messageText.split(' ');
-  const coin = args[1]?.trim(); // Optional coin parameter
+  const coin = args[1]?.trim();
 
   isAutopilotOn = !isAutopilotOn;
 

@@ -9,6 +9,9 @@ import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
 import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, TradeProposal } from './utils/agent';
 
+// Import Shield SDK to secure Bot executions
+import { AsiwajuAgentShield } from './infra/ShieldSDK';
+
 // Verify Token
 const discordToken = process.env.DISCORD_BOT_TOKEN;
 if (!discordToken) {
@@ -239,7 +242,7 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // 7. !approve Command (Autonomous Agent Trading Execution)
+  // 7. !approve Command (Autonomous Agent Trading Execution secured via AAS SDK)
   if (content === '!approve') {
     const proposal = pendingProposals.get(message.author.id);
 
@@ -247,21 +250,39 @@ client.on('messageCreate', async (message) => {
       return message.reply("❌ Error: No pending trade proposal found. Run `!trade <coin>` first to scan.");
     }
 
-    message.reply(`⚡ Permission granted. Broadcasting signed market order to Bitget Spot V2...`);
+    message.reply(`⚡ Permission granted. Initializing Asiwaju Agent Shield SDK pipeline on-server...`);
 
     try {
-      const executionResult = await executeApprovedTrade(proposal);
-      const [status, details] = executionResult.split(":");
+      const tradeRequest = {
+        symbol: proposal.symbol,
+        side: proposal.side as 'buy' | 'sell',
+        price: parseFloat(proposal.price),
+        quantity: parseFloat(proposal.quantity)
+      };
 
-      if (status === "SUCCESS") {
-        message.reply(`🎯 **Trade Executed Live!** 🎯\n\nOrder ID: \`${details}\``);
+      // Execute through the official secure Shield SDK pipeline (No bypass)
+      const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+        proposal.reason,
+        tradeRequest,
+        `discord_sig_${Date.now()}` // Generate secure unique signature nonce
+      );
+
+      let logsMessage = "🔒 **Asiwaju Agent Shield Security Report**\n\n";
+      shieldReport.logs.forEach((logLine: string) => {
+        logsMessage += `• ${logLine}\n`;
+      });
+
+      if (shieldReport.success) {
+        logsMessage += `\n🎯 **Trade Executed Live!**\nOrder ID: \`${shieldReport.orderId}\``;
         pendingProposals.delete(message.author.id); // Clear proposal memory on success
       } else {
-        message.reply(`❌ Order placement failed: ${details}`);
+        logsMessage += `\n❌ **AAS Shield BLOCKED:** ${shieldReport.message}`;
       }
-    } catch (error) {
+
+      await sendDiscordSafeMessage(message, logsMessage);
+    } catch (error: any) {
       console.error(error);
-      message.reply("❌ Handshake timeout. Transaction rejected.");
+      message.reply(`❌ Handshake timeout or exception: ${error.message || 'Transaction rejected.'}`);
     }
   }
 
