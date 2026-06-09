@@ -14,8 +14,8 @@ interface TradeProposal {
   reason: string;
 }
 
-// Redirect all Web dashboard fetches to your secure, long-running Render API Server
-const BACKEND_API_BASE = "https://asiwaju-trading-hub.onrender.com";
+// Redirect all Web dashboard fetches to your secure, new long-running Render API Server
+const BACKEND_API_BASE = "https://asiwaju-trading-hub-37he.onrender.com";
 
 // -------------------------------------------------------------
 // HELPER: DYNAMIC SVG COORDINATE MAPPER
@@ -783,7 +783,7 @@ export default function Dashboard() {
             <div className="gemini-glow-card-sentinel">
               <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider font-mono">Sentinel News & Macro Analyst</h3>
+                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Sentinel News & Macro Analyst</h3>
                   <p className="text-xs font-semibold text-white/90">Query global financial indices, news feeds, and ETF flows to locate psychological fear or hype signals.</p>
                 </div>
                 <button

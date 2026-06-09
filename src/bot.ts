@@ -1,7 +1,7 @@
 // LINE 1: Force ES6 variables configuration
 import 'dotenv/config';
 
-import { Telegraf } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import crypto from 'crypto';
 import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
@@ -112,60 +112,169 @@ function getBitgetHeaders(method: string, requestPath: string, body = ''): Recor
   };
 }
 
-// 1. Start Command
-bot.start((ctx) => {
-  ctx.reply(
-    "🦅 Welcome to Asiwaju AI Hub Command Center!\n\n" +
-    "Use these commands to interact with our features:\n" +
-    "👉 /balance - Check your live Bitget Spot wallet\n" +
-    "👉 /research <COIN> - Convene the AI Investment Committee (e.g., /research SOL)\n" +
-    "👉 /audit - Run the Anti-Liquidator Behavioral Risk Audit\n" +
-    "👉 /strategy <PROMPT> - Compile and backtest a strategy\n" +
-    "👉 /news - Check market sentiment and FUD/FOMO signals\n" +
-    "👉 /trade <COIN> - Prompt the AI Agent to scan market setups\n" +
-    "👉 /autopilot - Toggle the Autonomous Autopilot Trader ON/OFF"
-  );
-});
-
-// 2. Bitget Spot Balance Command
-bot.command('balance', async (ctx) => {
-  ctx.reply("🛰️ Interrogating Bitget V2 API, please wait...");
-
+// Helper: Performs a live portfolio balance lookup
+async function fetchBitgetBalances(): Promise<string> {
   const requestPath = '/api/v2/spot/account/assets';
   const headers = getBitgetHeaders('GET', requestPath);
 
-  try {
-    const response = await fetch('https://api.bitget.com' + requestPath, {
-      method: 'GET',
-      headers: headers
-    });
+  const response = await fetch('https://api.bitget.com' + requestPath, {
+    method: 'GET',
+    headers: headers
+  });
 
-    const result = await response.json();
+  const result = await response.json();
 
-    if (result.code === '00000' && Array.isArray(result.data)) {
-      const activeBalances = result.data.filter((asset: any) => parseFloat(asset.available) > 0);
+  if (result.code === '00000' && Array.isArray(result.data)) {
+    const activeBalances = result.data.filter((asset: any) => parseFloat(asset.available) > 0);
 
-      if (activeBalances.length === 0) {
-        return ctx.reply("💰 Your Spot wallet is currently empty.");
-      }
-
-      let message = "📊 *Asiwaju Spot Portfolio Summary*\n\n";
-      activeBalances.forEach((asset: any) => {
-        const available = parseFloat(asset.available).toFixed(4);
-        message += `• *${asset.coin}*: ${available}\n`;
-      });
-
-      await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
-    } else {
-      ctx.reply(`❌ Exchange Error: ${result.msg || 'Handshake failed'}`);
+    if (activeBalances.length === 0) {
+      return "💰 Your Spot wallet is currently empty.";
     }
-  } catch (error) {
-    console.error(error);
-    ctx.reply("❌ Connection timeout. Check local proxy or network tunnel status.");
+
+    let message = "📊 *Asiwaju Spot Portfolio Summary*\n\n";
+    activeBalances.forEach((asset: any) => {
+      const available = parseFloat(asset.available).toFixed(4);
+      message += `• *${asset.coin}*: ${available}\n`;
+    });
+    return message;
+  } else {
+    throw new Error(result.msg || "Bitget Asset query failed.");
+  }
+}
+
+// 1. Start Command (Launches with Custom Persistent Reply Keyboard)
+bot.start((ctx) => {
+  ctx.reply(
+    "🦅 Welcome to Asiwaju AI Hub Command Center!\n\n" +
+    "Use our custom menu buttons below or type prefix commands to navigate.",
+    Markup.keyboard([
+      ['📊 Research SOL', '🛡️ Behavioral Audit'],
+      ['📡 Sentiment News', '💰 Spot Balance'],
+      ['🤖 Trade SOL', '⚡ Approve Trade']
+    ]).resize() // Resizes layout perfectly for mobile screens
+  );
+});
+
+// 2. Interactive Menu Custom Button Handlers (Captured viahears)
+bot.hears('📊 Research SOL', async (ctx) => {
+  ctx.reply("🎬 Convening the Asiwaju AI Investment Committee to analyze SOL...\nThis may take up to 15 seconds.");
+  try {
+    const report = await runInvestmentCommittee("SOL");
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to generate committee report.'}`);
   }
 });
 
-// 3. Multi-Agent AI Investment Committee Command
+bot.hears('🛡️ Behavioral Audit', async (ctx) => {
+  ctx.reply("🛡️ Fetching spot trade history and generating behavioral risk audit...");
+  try {
+    const report = await runBehavioralAudit();
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to generate behavioral risk audit.'}`);
+  }
+});
+
+bot.hears('📡 Sentiment News', async (ctx) => {
+  ctx.reply("📡 Querying global macro headlines and generating market intelligence...");
+  try {
+    const report = await runNewsAudit();
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to compile sentinel news audit.'}`);
+  }
+});
+
+bot.hears('💰 Spot Balance', async (ctx) => {
+  ctx.reply("🛰️ Interrogating Bitget V2 API, please wait...");
+  try {
+    const balance = await fetchBitgetBalances();
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(balance));
+  } catch (error: any) {
+    ctx.reply(`❌ Exchange Error: ${error.message || 'Handshake failed'}`);
+  }
+});
+
+bot.hears('🤖 Trade SOL', async (ctx) => {
+  ctx.reply("🤖 Asiwaju AI Agent is scanning market conditions & reading charts for SOL...");
+  try {
+    const proposal = await scanMarketOpportunity("SOL");
+    if (!proposal) {
+      return ctx.reply(`⚪ Market ranging. No high-probability setups located for SOL at this time.`);
+    }
+
+    pendingProposals.set(ctx.chat.id, proposal);
+
+    const message = `🎯 **AI Trading Agent Signal Located!** 🎯\n\n` +
+      `• **Asset:** ${proposal.symbol}\n` +
+      `• **Direction:** ${proposal.side.toUpperCase()}\n` +
+      `• **Price:** $${parseFloat(proposal.price).toFixed(2)}\n` +
+      `• **Quantity:** ${proposal.quantity}\n` +
+      `• **Take Profit Target:** $${parseFloat(proposal.takeProfit).toFixed(2)}\n` +
+      `• **Stop Loss Invalidation:** $${parseFloat(proposal.stopLoss).toFixed(2)}\n\n` +
+      `📝 **Justification:** ${proposal.reason}\n\n` +
+      `⚡ **Awaiting Permission:** Click the '⚡ Approve Trade' button to execute this trade on Bitget!`;
+
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
+  } catch (error: any) {
+    ctx.reply(`❌ Failed to complete scan: ${error.message}`);
+  }
+});
+
+bot.hears('⚡ Approve Trade', async (ctx) => {
+  const proposal = pendingProposals.get(ctx.chat.id);
+
+  if (!proposal) {
+    return ctx.reply("❌ Error: No pending trade proposal found. Click '🤖 Trade SOL' first to scan.");
+  }
+
+  ctx.reply(`⚡ Permission granted. Initializing Asiwaju Agent Shield SDK pipeline on-server...`);
+
+  try {
+    const tradeRequest = {
+      symbol: proposal.symbol,
+      side: proposal.side as 'buy' | 'sell',
+      price: parseFloat(proposal.price),
+      quantity: parseFloat(proposal.quantity)
+    };
+
+    // Execute through secure Shield SDK pipeline
+    const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+      proposal.reason,
+      tradeRequest,
+      `telegram_sig_${Date.now()}` // Generate unique signature nonce
+    );
+
+    let logsMessage = "🔒 *Asiwaju Agent Shield Security Report*\n\n";
+    shieldReport.logs.forEach((logLine: string) => {
+      logsMessage += `• ${logLine}\n`;
+    });
+
+    if (shieldReport.success) {
+      logsMessage += `\n🎯 **Trade Executed Live!**\nOrder ID: \`${shieldReport.orderId}\``;
+      pendingProposals.delete(ctx.chat.id); // Clear proposal memory on success
+    } else {
+      logsMessage += `\n❌ **AAS Shield BLOCKED:** ${shieldReport.message}`;
+    }
+
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(logsMessage));
+  } catch (error: any) {
+    ctx.reply(`❌ Handshake timeout or exception: ${error.message || 'Transaction rejected.'}`);
+  }
+});
+
+// 3. Centralized Bot Commands List (Prefix fallbacks)
+bot.command('balance', async (ctx) => {
+  ctx.reply("🛰️ Interrogating Bitget V2 API, please wait...");
+  try {
+    const balance = await fetchBitgetBalances();
+    await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(balance));
+  } catch (error: any) {
+    ctx.reply(`❌ Exchange Error: ${error.message || 'Handshake failed'}`);
+  }
+});
+
 bot.command('research', async (ctx) => {
   const messageText = ctx.message?.text || '';
   const args = messageText.split(' ');
@@ -181,26 +290,21 @@ bot.command('research', async (ctx) => {
   try {
     const report = await runInvestmentCommittee(coinUpper);
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
-  } catch (error) {
-    console.error(error);
-    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to generate committee report.'}`);
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to generate committee report.'}`);
   }
 });
 
-// 4. Behavioral Risk Audit Command (Anti-Liquidator)
 bot.command('audit', async (ctx) => {
   ctx.reply("🛡️ Fetching spot trade history and generating behavioral risk audit...");
-
   try {
     const report = await runBehavioralAudit();
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
-  } catch (error) {
-    console.error(error);
-    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to generate behavioral risk audit.'}`);
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to generate behavioral risk audit.'}`);
   }
 });
 
-// 5. Strategy Lab Compiler Command
 bot.command('strategy', async (ctx) => {
   const messageText = ctx.message?.text || '';
   const args = messageText.split(' ');
@@ -215,26 +319,21 @@ bot.command('strategy', async (ctx) => {
   try {
     const report = await generateStrategyAndBacktest(strategyPrompt);
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
-  } catch (error) {
-    console.error(error);
-    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to compile strategy.'}`);
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to compile strategy.'}`);
   }
 });
 
-// 6. Sentinel News Sentiment Command
 bot.command('news', async (ctx) => {
   ctx.reply("📡 Querying global macro headlines and generating market intelligence...");
-
   try {
     const report = await runNewsAudit();
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(report));
-  } catch (error) {
-    console.error(error);
-    ctx.reply(`❌ Error: ${(error as any).message || 'Failed to compile sentinel news audit.'}`);
+  } catch (error: any) {
+    ctx.reply(`❌ Error: ${error.message || 'Failed to compile sentinel news audit.'}`);
   }
 });
 
-// 7. Autonomous Agent Trading Scan Command
 bot.command('trade', async (ctx) => {
   const messageText = ctx.message?.text || '';
   const args = messageText.split(' ');
@@ -253,7 +352,6 @@ bot.command('trade', async (ctx) => {
       return ctx.reply(`⚪ Market ranging. No high-probability setups located for ${coinUpper} at this time.`);
     }
 
-    // Save the proposal in user chat memory
     pendingProposals.set(ctx.chat.id, proposal);
 
     const message = `🎯 **AI Trading Agent Signal Located!** 🎯\n\n` +
@@ -267,13 +365,11 @@ bot.command('trade', async (ctx) => {
       `⚡ **Awaiting Permission:** Reply with /approve to execute this trade on Bitget!`;
 
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
-  } catch (error) {
-    console.error(error);
-    ctx.reply("❌ Failed to complete scan. Check the agentic gateway logs.");
+  } catch (error: any) {
+    ctx.reply(`❌ Failed to complete scan: ${error.message}`);
   }
 });
 
-// 8. Autonomous Agent Trading Execution Command (Secured via AAS SDK pipeline)
 bot.command('approve', async (ctx) => {
   const proposal = pendingProposals.get(ctx.chat.id);
 
@@ -291,11 +387,10 @@ bot.command('approve', async (ctx) => {
       quantity: parseFloat(proposal.quantity)
     };
 
-    // Execute through the official secure Shield SDK pipeline (No bypass)
     const shieldReport = await AsiwajuAgentShield.processSecureTrade(
       proposal.reason,
       tradeRequest,
-      `telegram_sig_${Date.now()}` // Generate secure unique signature nonce
+      `telegram_sig_${Date.now()}`
     );
 
     let logsMessage = "🔒 *Asiwaju Agent Shield Security Report*\n\n";
@@ -305,19 +400,17 @@ bot.command('approve', async (ctx) => {
 
     if (shieldReport.success) {
       logsMessage += `\n🎯 **Trade Executed Live!**\nOrder ID: \`${shieldReport.orderId}\``;
-      pendingProposals.delete(ctx.chat.id); // Clear proposal memory on success
+      pendingProposals.delete(ctx.chat.id);
     } else {
       logsMessage += `\n❌ **AAS Shield BLOCKED:** ${shieldReport.message}`;
     }
 
     await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(logsMessage));
   } catch (error: any) {
-    console.error(error);
     ctx.reply(`❌ Handshake timeout or exception: ${error.message || 'Transaction rejected.'}`);
   }
 });
 
-// 9. Autonomous Autopilot Trading Toggle Command
 bot.command('autopilot', async (ctx) => {
   const messageText = ctx.message?.text || '';
   const args = messageText.split(' ');
@@ -339,9 +432,9 @@ bot.command('autopilot', async (ctx) => {
           `• **Bitget Order ID:** \`${details}\` [4]`;
         await sendSafeHtmlMessage(ctx, convertMarkdownToTelegramHtml(message));
       } else {
-        ctx.reply(`🤖 [Autopilot] Scan complete. Safety abort status: ${result}`);
+        ctx.reply(`🤖 [Autopilot] Scan complete. Safety outcome: ${result}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       ctx.reply("❌ Exception during autopilot execution loop.");
     }

@@ -2,7 +2,7 @@
 
 ## 🏛️ Project Overview
 
-The **Asiwaju AI Hub** is an integrated Web3 execution terminal and companion bot ecosystem designed to democratize quantitative analysis, behavioral risk auditing, and automated algorithmic spot trading on the **Bitget Spot V2** exchange.
+The **Asiwaju AI Hub** is a highly integrated, multi-platform decentralized trading terminal and companion bot ecosystem designed to democratize quantitative analysis, behavioral risk auditing, and automated algorithmic spot trading on the **Bitget Spot V2** exchange.
 
 To secure AI-driven financial execution, the workspace implements the **Asiwaju Agent Shield (AAS) SDK**, a zero-trust programmatic security layer that intercepts LLM trade signals. The SDK evaluates prompts and transaction parameters against an immutable, code-level risk boundary matrix, completely separating volatile AI brains from your private cryptographic keys.
 
@@ -35,12 +35,12 @@ AI Agents are highly vulnerable to prompt injections, malicious smart contract r
 
 ## 🧪 Core Ecosystem Features
 
-1. **🏛️ The War Room (AI Investment Committee):** A multi-agent consensus debate engine. Three parallel specialized analysts (Technical, Risk, and On-Chain) debate market setups, while the Chairman Agent resolves the final trading verdict.
-2. **🛡️ The Guardian (Psychological Auditor):** Interrogates private Bitget Spot order logs. If the log is empty, it queries public exchange trade fills. It analyzes transactions for psychological biases (FOMO, Revenge Trading, Panic Selling) and calculates a Behavioral Health Score (0-100), tracking progress via a client-side memory ledger.
-3. **🧪 The Strategy Lab (NL Strategy Compiler):** Translates plain English strategies into syntactically valid Python Pandas backtesting scripts, rendering performance returns on a dynamic, glowing **SVG Neon Equity Curve**.
-4. **📡 The Sentinel (Hype Index Terminal):** Scrapes live, real-time news headlines using CryptoCompare APIs (with fallback Tavily dynamic search loops) to calculate a dynamic Market Hype Index.
-5. **🤖 AI Execution Agent & Autopilot Console:** Scans markets using the **Market Regime Detection Engine** to dynamically shift trading style (Range-bound mean reversion vs. Momentum breakout). Orders are secured via the AAS SDK.
-   * **Autopilot Mode:** A 24/7 persistent worker that scans core whitelist assets (`['BTC', 'SOL', 'ETH']`) every 10 minutes, dispatches direct orders, and broadcasts alert notifications to your Telegram and Discord channels.
+1.  **🏛️ The War Room (AI Investment Committee):** A multi-agent consensus debate engine. Three parallel specialized analysts (Technical, Risk, and On-Chain) debate market setups, while the Chairman Agent resolves the final trading verdict.
+2.  **🛡️ The Guardian (Psychological Auditor):** Interrogates private Bitget Spot order logs. If the log is empty, it queries public exchange trade fills. It analyzes transactions for psychological biases (FOMO, Revenge Trading, Panic Selling) and calculates a Behavioral Health Score (0-100), tracking progress via a client-side memory ledger.
+3.  **🧪 The Strategy Lab (NL Strategy Compiler):** Translates plain English strategies into syntactically valid Python Pandas backtesting scripts, rendering performance returns on a dynamic, glowing **SVG Neon Equity Curve**.
+4.  **📡 The Sentinel (Hype Index Terminal):** Scrapes live, real-time news headlines using CryptoCompare APIs (with fallback Tavily dynamic search loops) to calculate a dynamic Market Hype Index.
+5.  **🤖 AI Execution Agent & Autopilot Console:** Scans markets using the **Market Regime Detection Engine** to dynamically shift trading style (Range-bound mean reversion vs. Momentum breakout). Orders are secured via the AAS SDK.
+    *   **Autopilot Mode:** A 24/7 persistent worker that scans core whitelist assets (`['BTC', 'SOL', 'ETH']`) every 10 minutes, dispatches direct orders, and broadcasts alert notifications to your Telegram and Discord channels.
 
 ---
 

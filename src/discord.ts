@@ -260,11 +260,10 @@ client.on('messageCreate', async (message) => {
         quantity: parseFloat(proposal.quantity)
       };
 
-      // Execute through the official secure Shield SDK pipeline (No bypass)
       const shieldReport = await AsiwajuAgentShield.processSecureTrade(
         proposal.reason,
         tradeRequest,
-        `discord_sig_${Date.now()}` // Generate secure unique signature nonce
+        `discord_sig_${Date.now()}`
       );
 
       let logsMessage = "🔒 **Asiwaju Agent Shield Security Report**\n\n";
@@ -274,7 +273,7 @@ client.on('messageCreate', async (message) => {
 
       if (shieldReport.success) {
         logsMessage += `\n🎯 **Trade Executed Live!**\nOrder ID: \`${shieldReport.orderId}\``;
-        pendingProposals.delete(message.author.id); // Clear proposal memory on success
+        pendingProposals.delete(message.author.id);
       } else {
         logsMessage += `\n❌ **AAS Shield BLOCKED:** ${shieldReport.message}`;
       }
