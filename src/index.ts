@@ -30,7 +30,7 @@ process.on('uncaughtException', (err) => {
 });
 
 const PORT = process.env.PORT || 8080;
-const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "https://asiwaju-trading-hub.onrender.com";
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "https://asiwaju-trading-hub-wi3a.onrender.com";
 
 // Helper: Safely parses JSON boundaries inside AI responses
 function sanitizeAndParseJson(rawText: string): any {
@@ -431,7 +431,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`📡 Render API Server active on port ${PORT}. Bots are operational.`);
 
-  // 1. Keep-Alive Loop
+  // 1. Keep-Alive Loop: Executes a request every 10 minutes to prevent Render free-tier sleeping (Zero-Token Cost)
   setInterval(() => {
     if (RENDER_URL) {
       console.log(`🛰️ Keep-Alive: Pinging self...`);
@@ -443,9 +443,9 @@ server.listen(PORT, () => {
     }
   }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop
+  // 2. Autonomous Portfolio Scanner Loop: Adjusted to once every 4 hours to minimize token consumption
   setInterval(async () => {
-    console.log("🤖 [Autopilot] Triggering background portfolio scan cycle...");
+    console.log("🤖 [Autopilot] Triggering 4-hour background portfolio scan cycle...");
     try {
       const result = await runAutopilotExecution();
       const [status, symbol, side, price, details] = result.split(":");
@@ -482,5 +482,5 @@ server.listen(PORT, () => {
     } catch (error: any) {
       console.error("❌ Exception during background autopilot scan:", error.message);
     }
-  }, 10 * 60 * 1000);
+  }, 4 * 60 * 60 * 1000); // Triggered exactly every 4 hours (14,400,000 ms)
 });

@@ -15,7 +15,7 @@ interface TradeProposal {
 }
 
 // Redirect all Web dashboard fetches to your secure, new long-running Render API Server
-const BACKEND_API_BASE = "https://asiwaju-trading-hub-37he.onrender.com";
+const BACKEND_API_BASE = "https://asiwaju-trading-hub-wi3a.onrender.com";
 
 // -------------------------------------------------------------
 // HELPER: DYNAMIC SVG COORDINATE MAPPER
