@@ -1,4 +1,4 @@
-// LINE 1: Force ES6 to load environment variables before hoisting any other modules
+
 import 'dotenv/config';
 
 import http from 'http';
