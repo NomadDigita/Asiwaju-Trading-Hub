@@ -51,7 +51,8 @@ Next.js App Router (TypeScript)                                     Persistent N
 
 ---
 
-## 🛡️ The Zero-Trust Security Pipeline (AAS SDK)
+## 🛡️ <img src="https://readme-typing-svg.demolab.com?font=Bitcount+Ink&weight=600&size=22&pause=5000&color=FF4500&vCenter=true&width=650&lines=The+Zero-Trust+Security+Pipeline+(AAS+SDK)" alt="Security Pipeline" />
+
 
 AI Agents are highly vulnerable to prompt injections, malicious smart contract re-entrancy callbacks, and signature replay attacks. The AAS SDK intercepts all trade signals and routes them through a **5-layer defensive pipeline** before execution:
 
