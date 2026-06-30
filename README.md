@@ -26,7 +26,8 @@
 
 ---
 
-## 🏛️ Project Architecture & Decentralized Cloud Topology
+## 🏛️ <img src="https://readme-typing-svg.demolab.com?font=Bitcount+Ink&weight=600&size=22&pause=5000&color=00E5FF&vCenter=true&width=700&lines=Project+Architecture+%26+Decentralized+Cloud+Topology" alt="Project Architecture" />
+
 
 The **Asiwaju AI Hub** is a highly integrated, multi-platform Web3 quant execution terminal and companion bot ecosystem designed to democratize advanced trading indicators, behavioral risk audits, and automated algorithmic spot trading on **Bitget Spot V2**. 
 
