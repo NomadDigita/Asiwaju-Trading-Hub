@@ -1,4 +1,4 @@
-// LINE 1: Force ES6 variables configuration
+
 import 'dotenv/config';
 
 import { Telegraf, Markup } from 'telegraf';
