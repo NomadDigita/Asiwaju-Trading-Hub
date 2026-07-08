@@ -482,5 +482,5 @@ server.listen(PORT, () => {
     } catch (error: any) {
       console.error("❌ Exception during background autopilot scan:", error.message);
     }
-  }, 4 * 60 * 60 * 1000); // Triggered exactly every 4 hours (14,400,000 ms)
+  }, 6 * 60 * 60 * 1000); // Triggered exactly every 4 hours (14,400,000 ms)
 });
