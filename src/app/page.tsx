@@ -1058,19 +1058,19 @@ export default function Dashboard() {
                 <div className="gemini-glow-card-inner p-6 flex flex-col justify-between h-[280px]" style={{ animationDelay: '0.5s' }}>
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-widest text-white mb-3 text-glow-cyan">Enforced Safety Guardrail Parameters</h4>
-                    <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides [4].</p>
+                    <p className="text-xs font-semibold text-white/80 leading-relaxed mb-4">These parameters reside permanently in your compiled code layer and cannot be bypassed or modified by any AI agent prompts or local overrides.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="p-3 bg-black/40 rounded-xl border border-white/5">
                         <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Max Trade Size</span>
-                        <div className="text-xs font-extrabold text-rose-400 mt-1">$10.00 USD Max [4]</div>
+                        <div className="text-xs font-extrabold text-rose-400 mt-1">$10.00 USD Max</div>
                       </div>
                       <div className="p-3 bg-black/40 rounded-xl border border-white/5">
                         <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Approved Assets</span>
-                        <div className="text-[10px] font-bold text-cyan-400 mt-1">BTC, SOL, ETH [4]</div>
+                        <div className="text-[10px] font-bold text-cyan-400 mt-1">BTC, SOL, ETH</div>
                       </div>
                       <div className="p-3 bg-black/40 rounded-xl border border-white/5">
                         <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Rate-Limit Cooldown</span>
-                        <div className="text-xs font-extrabold text-amber-400 mt-1">30 Seconds [4]</div>
+                        <div className="text-xs font-extrabold text-amber-400 mt-1">30 Seconds</div>
                       </div>
                     </div>
                   </div>
