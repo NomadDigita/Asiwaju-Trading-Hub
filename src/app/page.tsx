@@ -881,7 +881,7 @@ export default function Dashboard() {
               <div className="gemini-glow-card-inner p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex flex-col gap-1.5">
                   <h3 className="text-sm font-extrabold text-white uppercase tracking-wider text-glow-cyan">AI Execution Agent Console</h3>
-                  <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval [4].</p>
+                  <p className="text-xs font-semibold text-white/90">Command the AI Agent to scan live charts for opportunities and execute trades autonomously with your approval.</p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <input
@@ -962,7 +962,7 @@ export default function Dashboard() {
                           <span className={`h-3 w-3 rounded-full ${isAutopilot ? 'bg-emerald-400 animate-pulse' : 'bg-white/10'}`} />
                           <div>
                             <h4 className="text-[10px] font-extrabold text-white tracking-wide">Autopilot Execution Mode</h4>
-                            <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals [4].</p>
+                            <p className="text-[9px] text-white/50 leading-relaxed mt-0.5">Let the AI Agent trade autonomously on high-conviction signals.</p>
                           </div>
                         </div>
                         <button
@@ -1084,7 +1084,7 @@ export default function Dashboard() {
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-widest text-glow-cyan mb-4">AAS SDK Developer Integration Guide</h3>
                 <div className="space-y-4">
                   <p className="text-xs font-semibold text-white/90 leading-relaxed">
-                    The **Asiwaju Agent Shield (AAS) SDK** is designed for low-friction developer onboarding [4]. Any developer building autonomous trading agents on Bitget can protect their keys and prevent prompt injections by importing the SDK into their main event loop [4].
+                    The **Asiwaju Agent Shield (AAS) SDK** is designed for low-friction developer onboarding. Any developer building autonomous trading agents on Bitget can protect their keys and prevent prompt injections by importing the SDK into their main event loop.
                   </p>
                   <div className="bg-black/60 rounded-xl p-4 font-mono text-[10px] text-cyan-300 leading-relaxed border border-white/5 overflow-x-auto">
                     <pre>
