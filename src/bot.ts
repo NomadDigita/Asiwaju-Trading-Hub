@@ -12,13 +12,18 @@ import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, Tra
 // Import Shield SDK to secure Bot executions
 import { AsiwajuAgentShield } from './infra/ShieldSDK';
 
-// Verify Bot Token
+// Verify Bot Token (non-fatal: the backend REST API and other integrations
+// must be able to boot even if the Telegram bot isn't configured. Previously
+// this threw at module-load time, which crashed the entire process — including
+// the unrelated HTTP API server in index.ts — whenever TELEGRAM_BOT_TOKEN was
+// missing, since index.ts imports `bot` at the top of the file.)
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
-if (!botToken) {
-  throw new Error("❌ Error: TELEGRAM_BOT_TOKEN is missing in .env");
+const isTelegramConfigured = Boolean(botToken);
+if (!isTelegramConfigured) {
+  console.warn("⚠️ [Bot] TELEGRAM_BOT_TOKEN is missing — Telegram bot will be disabled, but the rest of the backend will continue running.");
 }
 
-export const bot = new Telegraf(botToken);
+export const bot = new Telegraf(botToken || 'disabled-no-token-configured');
 
 const pendingProposals = new Map<number, TradeProposal>();
 let isAutopilotOn = false;
@@ -445,6 +450,10 @@ bot.command('autopilot', async (ctx) => {
 
 // Launch Bot recursively to catch ETIMEDOUT handshakes and auto-recover
 function launchTelegramBot() {
+  if (!isTelegramConfigured) {
+    console.warn("⚠️ [Bot] Skipping Telegram launch — no TELEGRAM_BOT_TOKEN configured.");
+    return;
+  }
   bot.launch()
     .then(() => {
       console.log("🚀 Asiwaju AI Hub Unified Bot is active and listening on Telegram...");

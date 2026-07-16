@@ -16,6 +16,7 @@ import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
 import { runNewsAudit } from './utils/sentinel';
 import { callUnifiedAI } from './utils/ai';
+import { extractJsonFromText } from './utils/json';
 
 // Import Shield SDK to validate and secure manual web-dashboard orders
 import { AsiwajuAgentShield } from './infra/ShieldSDK';
@@ -31,24 +32,6 @@ process.on('uncaughtException', (err) => {
 
 const PORT = process.env.PORT || 8080;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || "https://asiwaju-trading-hub-wi3a.onrender.com";
-
-// Helper: Safely parses JSON boundaries inside AI responses
-function sanitizeAndParseJson(rawText: string): any {
-  let cleanText = rawText
-    .replace(/^\`\`\`(json)?\n/, '')
-    .replace(/\`\`\`$/, '')
-    .trim();
-
-  const startIdx = cleanText.indexOf('{');
-  const endIdx = cleanText.lastIndexOf('}');
-
-  if (startIdx === -1 || endIdx === -1) {
-    throw new Error(`JSON Boundaries Missing. Raw: ${rawText.slice(0, 100)}`);
-  }
-
-  const jsonString = cleanText.slice(startIdx, endIdx + 1);
-  return JSON.parse(jsonString);
-}
 
 // Helper to parse JSON request body in raw HTTP server
 async function getRequestBody(req: http.IncomingMessage): Promise<any> {
@@ -200,7 +183,7 @@ const server = http.createServer(async (req, res) => {
       }`;
 
       const rawReport = await callUnifiedAI(systemPrompt, `Run consensus audit for ${coin.toUpperCase()}`);
-      const parsed = sanitizeAndParseJson(rawReport);
+      const parsed = extractJsonFromText(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
     }
@@ -257,7 +240,7 @@ const server = http.createServer(async (req, res) => {
       }`;
 
       const rawReport = await callUnifiedAI(systemPrompt, `Analyze this trade log: ${tradeLogPayload}`);
-      const parsed = sanitizeAndParseJson(rawReport);
+      const parsed = extractJsonFromText(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
     }
@@ -285,7 +268,7 @@ const server = http.createServer(async (req, res) => {
       }`;
 
       const rawReport = await callUnifiedAI(systemPrompt, `Compile and simulate: ${prompt}`);
-      const parsed = sanitizeAndParseJson(rawReport);
+      const parsed = extractJsonFromText(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
     }
@@ -332,7 +315,7 @@ const server = http.createServer(async (req, res) => {
       }`;
 
       const rawReport = await callUnifiedAI(systemPrompt, `Analyze this news feed: ${activeNewsPayload}`);
-      const parsed = sanitizeAndParseJson(rawReport);
+      const parsed = extractJsonFromText(rawReport);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(parsed));
     }

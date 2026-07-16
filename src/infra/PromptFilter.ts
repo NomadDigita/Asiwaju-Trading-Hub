@@ -2,29 +2,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { callUnifiedAI } from '../utils/ai';
+import { extractJsonFromText } from '../utils/json';
 
 export interface SafetyReport {
   status: 'SAFE' | 'UNSAFE';
   reason: string;
   confidence: number;
-}
-
-// Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
-function extractShieldJson(rawText: string): any {
-  let cleanText = rawText
-    .replace(/^\`\`\`(json)?\n/, '')
-    .replace(/\`\`\`$/, '')
-    .trim();
-
-  const startIdx = cleanText.indexOf('{');
-  const endIdx = cleanText.lastIndexOf('}');
-
-  if (startIdx === -1 || endIdx === -1) {
-    throw new Error("Target JSON boundaries not resolved inside raw text block.");
-  }
-
-  const jsonString = cleanText.slice(startIdx, endIdx + 1);
-  return JSON.parse(jsonString);
 }
 
 /**
@@ -71,7 +54,7 @@ export async function evaluatePromptSafety(prompt: string): Promise<SafetyReport
     }
 
     // Extract JSON safely, parsing markdown wrappers without crashing
-    const report: SafetyReport = extractShieldJson(resultText);
+    const report: SafetyReport = extractJsonFromText(resultText);
     return report;
 
   } catch (error: any) {

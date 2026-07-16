@@ -2,29 +2,13 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { callUnifiedAI } from "@/utils/ai";
+import { extractJsonFromText } from "@/utils/json";
 
 const MOCK_NEWS_FEED = [
   { source: "Bloomberg", headline: "Fed hints at potential rate cuts in upcoming Q3 meeting as inflation cools.", category: "Macro" },
   { source: "Coindesk", headline: "Solana daily active wallets hit new record high amid meme coin volume surge.", category: "Crypto" },
   { source: "Reuters", headline: "Major US investment bank files for spot Solana ETF, citing high institutional demand.", category: "Regulation" }
 ];
-
-function sanitizeAndParseJson(rawText: string): any {
-  let cleanText = rawText
-    .replace(/^\`\`\`(json)?\n/, '')
-    .replace(/\`\`\`$/, '')
-    .trim();
-
-  const startIdx = cleanText.indexOf('{');
-  const endIdx = cleanText.lastIndexOf('}');
-
-  if (startIdx === -1 || endIdx === -1) {
-    throw new Error(`JSON Boundaries Missing. Raw: ${rawText.slice(0, 100)}`);
-  }
-
-  const jsonString = cleanText.slice(startIdx, endIdx + 1);
-  return JSON.parse(jsonString);
-}
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -44,7 +28,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }`;
 
     const rawReport = await callUnifiedAI(systemPrompt, `Analyze this news feed: ${JSON.stringify(MOCK_NEWS_FEED, null, 2)}`);
-    const parsed = sanitizeAndParseJson(rawReport);
+    const parsed = extractJsonFromText(rawReport);
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("API Error in Sentinel Route:", error);

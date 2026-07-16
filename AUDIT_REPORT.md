@@ -4,6 +4,12 @@
 **Date:** 2026-07-16
 **Commit audited:** `53d3011` (HEAD of `main` at audit time)
 
+## Follow-up Fix Log (post-audit)
+
+- **[FIXED]** Recommendation #3 — "Make Telegram/Discord bot startup optional and resilient." `src/bot.ts` and `src/discord.ts` previously called `throw new Error(...)` at module-load time if `TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` were missing. Because `src/index.ts` (the Render backend hosting the REST API the web dashboard depends on) imports `bot` and `client` at the top of the file, a missing bot token — unrelated to trading functionality — crashed the *entire* backend on boot, taking the REST API down with it.
+  - Fix: both files now log a `console.warn` instead of throwing, skip `bot.launch()` / `client.login()` respectively when unconfigured, and let the rest of the process (REST API, keep-alive loop, autopilot loop) run normally.
+  - Verified: ran `npx tsx src/index.ts` with a completely empty environment (`env -i`) — server now logs the warnings, binds to its port, and stays alive (`📡 Render API Server active on port 8080. Bots are operational.`), instead of exiting immediately as it did before.
+
 ## Audit Environment & Constraints
 
 This audit was performed in a sandboxed environment with **outbound network access limited to package registries** (npm, PyPI, GitHub). The following external services used by this project were **not reachable** from the audit environment, and therefore could not be live-tested end-to-end:

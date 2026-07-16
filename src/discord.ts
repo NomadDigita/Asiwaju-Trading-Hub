@@ -12,10 +12,13 @@ import { scanMarketOpportunity, executeApprovedTrade, runAutopilotExecution, Tra
 // Import Shield SDK to secure Bot executions
 import { AsiwajuAgentShield } from './infra/ShieldSDK';
 
-// Verify Token
+// Verify Token (non-fatal: see equivalent note in bot.ts. index.ts imports
+// `client` at module scope, so throwing here previously took down the whole
+// backend HTTP server just because Discord wasn't configured.)
 const discordToken = process.env.DISCORD_BOT_TOKEN;
-if (!discordToken) {
-  throw new Error("❌ Error: DISCORD_BOT_TOKEN is missing in .env");
+const isDiscordConfigured = Boolean(discordToken);
+if (!isDiscordConfigured) {
+  console.warn("⚠️ [Discord] DISCORD_BOT_TOKEN is missing — Discord bot will be disabled, but the rest of the backend will continue running.");
 }
 
 // Initialize Client with necessary privileged intents
@@ -318,7 +321,11 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-// Log Client In with safe error catching
-client.login(discordToken)
-  .then(() => console.log("🚀 Asiwaju Discord Companion Bot is active and listening..."))
-  .catch((err) => console.error("⚠️ Discord Bot failed to start:", err.message));
+// Log Client In with safe error catching (skipped entirely if unconfigured)
+if (isDiscordConfigured) {
+  client.login(discordToken)
+    .then(() => console.log("🚀 Asiwaju Discord Companion Bot is active and listening..."))
+    .catch((err) => console.error("⚠️ Discord Bot failed to start:", err.message));
+} else {
+  console.warn("⚠️ [Discord] Skipping login — no DISCORD_BOT_TOKEN configured.");
+}

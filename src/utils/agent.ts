@@ -3,6 +3,7 @@ dotenv.config();
 
 import { getBitgetHeaders } from './bitget';
 import { runNewsAudit } from './sentinel';
+import { extractJsonFromText } from './json';
 
 export interface TradeProposal {
   symbol: string;
@@ -20,25 +21,17 @@ interface RegimeReport {
   change: string;
 }
 
-// Helper: Safely extracts and parses JSON objects from raw LLM responses containing markdown fences
+// Thin wrapper around the shared JSON extractor that preserves this module's diagnostic logging.
 function extractShieldJson(rawText: string): any {
   console.log("🔍 [DIAGNOSTIC] Extracting JSON boundary coordinates...");
-  let cleanText = rawText
-    .replace(/^\`\`\`(json)?\n/, '')
-    .replace(/\`\`\`$/, '')
-    .trim();
-
-  const startIdx = cleanText.indexOf('{');
-  const endIdx = cleanText.lastIndexOf('}');
-
-  if (startIdx === -1 || endIdx === -1) {
+  try {
+    const parsed = extractJsonFromText(rawText);
+    console.log("🔍 [DIAGNOSTIC] Isolated JSON substring successfully. Compiling object...");
+    return parsed;
+  } catch (err) {
     console.error("❌ [DIAGNOSTIC] JSON coordinates missing in raw payload:", rawText);
-    throw new Error("Target JSON boundaries not resolved inside raw text block.");
+    throw err;
   }
-
-  const jsonString = cleanText.slice(startIdx, endIdx + 1);
-  console.log("🔍 [DIAGNOSTIC] Isolated JSON substring successfully. Compiling object...");
-  return JSON.parse(jsonString);
 }
 
 // 1. Perception Layer: Multi-Exchange Price Feed (Queries Bitget Public API first to resolve BGB/BNB accurately)

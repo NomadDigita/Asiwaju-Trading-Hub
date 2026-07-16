@@ -2,24 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { callUnifiedAI } from "@/utils/ai";
-
-// Robust JSON Sanitizer to prevent markdown code block syntax crashes
-function sanitizeAndParseJson(rawText: string): any {
-  let cleanText = rawText
-    .replace(/^\`\`\`(json)?\n/, '')
-    .replace(/\`\`\`$/, '')
-    .trim();
-
-  const startIdx = cleanText.indexOf('{');
-  const endIdx = cleanText.lastIndexOf('}');
-
-  if (startIdx === -1 || endIdx === -1) {
-    throw new Error(`JSON Boundaries Missing. Raw: ${rawText.slice(0, 100)}`);
-  }
-
-  const jsonString = cleanText.slice(startIdx, endIdx + 1);
-  return JSON.parse(jsonString);
-}
+import { extractJsonFromText } from "@/utils/json";
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -43,7 +26,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }`;
 
     const rawReport = await callUnifiedAI(systemPrompt, `Run consensus audit for ${coin.toUpperCase()}`);
-    const parsed = sanitizeAndParseJson(rawReport);
+    const parsed = extractJsonFromText(rawReport);
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("API Error in Committee Route:", error);
