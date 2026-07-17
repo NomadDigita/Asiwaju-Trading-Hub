@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone CommonJS diagnostic scripts (run directly via `node`, not
+    // part of the Next.js/TypeScript app) — intentionally use require().
+    "test-bitget.js",
+    "test-mulerun.js",
+    "test-telegram.js",
   ]),
 ]);
 
