@@ -257,6 +257,7 @@ Below is the exhaustive registry of environment variables used in the Asiwaju ec
 | `QWEN_API_KEY` | Server-side | Authenticates with Alibaba Cloud DashScope. | **Yes** | AI calls fall back to MuleRun gateway. |
 | `MULERUN_API_KEY` | Server-side | Authenticates with MuleRun gateway. | **Yes** | AI calls fall back to Qwen gateway. |
 | `TAVILY_API_KEY` | Server-side | Authenticates with Tavily Search API. | *Optional* | Real-time web search context is bypassed. |
+| `ASIWAJU_API_KEY` | Server-side & Client | Shared secret gating the `/api/*` REST surface (sent as `X-API-Key`). | *Strongly recommended* | Without it, `/api/*` is unauthenticated and reachable by anyone with the Render URL — the AAS Shield's internal guardrails become the only remaining line of defense. Set the same value on the client as `NEXT_PUBLIC_ASIWAJU_API_KEY` so the dashboard sends it. |
 | `PORT` | Server-side | Port assigned by Render. | *Optional* | Defaults to port `8080`. |
 | `RENDER_EXTERNAL_URL` | Server-side | Active Render workspace URL. | *Optional* | Used for keep-awake self-pings. |
 
@@ -319,6 +320,7 @@ Open `http://localhost:3000` in your browser to access the control center.
 *   **`409 Conflict` (Telegram Bot Crashes):** This means you have another local terminal running the bot concurrently. Shut down all local terminals using `Ctrl + C` before deploying.
 *   **Price Overwrites (Fixed):** The 10-second live poller is now completely decoupled from the scanned proposals. Real-time prices for BTC, ETH, SOL, BNB, and BGB are rendered in a dedicated live market card.
 *   **Geoblocking Restrictions:** Centralized exchange requests originating from US-based cloud servers will hang. The platform contains custom geoblocking fallbacks that dynamically route through Binance/DEXScreener/CoinGecko public APIs.
+*   **No `src/app/api/*` routes:** Earlier versions of this repo shipped a duplicate copy of every endpoint as Next.js API routes under `src/app/api/`, deployed alongside the frontend on Vercel. The dashboard never called them — it always talks directly to the Render server — and because they can't host a persistent process, they couldn't run the Telegram/Discord bots, the autopilot loop, or the keep-alive ping anyway. Worse, they carried **no authentication of any kind**, meaning `/api/agent` could execute real trades (up to the Shield's per-trade cap) for anyone who found the Vercel URL. They were removed entirely rather than patched, since the Render server (`src/index.ts`) is the only backend the app actually uses. All REST traffic goes through `src/index.ts`, which now also supports the `ASIWAJU_API_KEY` gate described above.
 
 <br><br>
 
