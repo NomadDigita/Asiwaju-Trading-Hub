@@ -86,7 +86,7 @@ export async function runNewsAudit(): Promise<string> {
     } else {
       throw new Error("Empty news response.");
     }
-  } catch (error) {
+  } catch {
     console.warn("⚠️ Public News API failed. Scraping real-time web search feed instead.");
     newsFeed = await fetchDynamicLiveNews();
   }

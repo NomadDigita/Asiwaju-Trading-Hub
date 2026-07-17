@@ -182,7 +182,7 @@ An unauthenticated news scraper that parses global headlines via the CryptoCompa
 
 ### <img src="https://readme-typing-svg.demolab.com?font=Space+Mono&weight=600&size=18&pause=4000&color=39FF14&vCenter=true&width=500&lines=5.+AI+Execution+Agent+%26+Autopilot+Console" alt="AI Autopilot" />
 Scans markets using the **Market Regime Detection Engine** (calculating 24h price-changes and volatility metrics) to dynamically shift trading style (Range-bound mean reversion vs. Momentum breakout). Scans are secured via the AAS SDK.
-*   **Autopilot Mode:** A 24/7 background worker that scans whitelisted assets (`['BTC', 'SOL', 'ETH']`) every 4 hours to minimize token consumption, executing trades and broadcasting alert notifications to Telegram and Discord.
+*   **Autopilot Mode:** A 24/7 background worker that scans whitelisted assets (`['BTC', 'SOL', 'ETH']`) every 6 hours to minimize token consumption, executing trades and broadcasting alert notifications to Telegram and Discord.
 
 ---
 

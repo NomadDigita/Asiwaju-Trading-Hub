@@ -4,6 +4,7 @@ dotenv.config();
 import { getBitgetHeaders } from './bitget';
 import { runNewsAudit } from './sentinel';
 import { extractJsonFromText } from './json';
+import { callUnifiedAI } from './ai';
 
 export interface TradeProposal {
   symbol: string;
@@ -189,7 +190,6 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
   }`;
 
   try {
-    const { callUnifiedAI } = require('./ai');
     console.log(`🧠 [DIAGNOSTIC] Sending prompt payload to AI Completions gateway...`);
     const resultText = await callUnifiedAI(agentBrainPrompt, `Current Asset: ${symbol}. Last Traded Price: $${livePrice}. Sentiment Brief: ${sentimentSummary}`);
 

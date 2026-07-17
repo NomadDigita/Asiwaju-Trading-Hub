@@ -17,6 +17,22 @@ interface TradeProposal {
 // Redirect all Web dashboard fetches to your secure, new long-running Render API Server
 const BACKEND_API_BASE = "https://asiwaju-trading-hub-wi3a.onrender.com";
 
+// Optional shared-secret sent to the backend's /api/* surface. Only takes effect
+// if the backend also has ASIWAJU_API_KEY set (see src/index.ts) — otherwise the
+// backend logs a warning but still accepts unauthenticated requests, so this stays
+// backward-compatible with deployments that haven't configured it yet.
+const BACKEND_API_KEY = process.env.NEXT_PUBLIC_ASIWAJU_API_KEY;
+
+// Thin wrapper around fetch() that attaches the shared-secret header (if configured)
+// to every call made to the backend, without having to repeat that logic at each call site.
+function backendFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers || {});
+  if (BACKEND_API_KEY) {
+    headers.set("X-API-Key", BACKEND_API_KEY);
+  }
+  return fetch(`${BACKEND_API_BASE}${path}`, { ...options, headers });
+}
+
 // -------------------------------------------------------------
 // HELPER: DYNAMIC SVG COORDINATE MAPPER
 // -------------------------------------------------------------
@@ -153,7 +169,7 @@ export default function Dashboard() {
         const assets = ["BTC", "ETH", "SOL", "BNB", "BGB"];
         const updatedPrices = { ...marketPrices };
         await Promise.all(assets.map(async (ticker) => {
-          const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${ticker}`);
+          const response = await backendFetch(`/api/agent?coin=${ticker}`);
           const data = await response.json();
           if (data && data.price) {
             updatedPrices[ticker as keyof typeof marketPrices] = parseFloat(data.price).toFixed(2);
@@ -174,7 +190,7 @@ export default function Dashboard() {
   const handleConveneCommittee = async () => {
     setCommitteeLoading(true);
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/committee`, {
+      const response = await backendFetch(`/api/committee`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ coin: coinInput })
@@ -205,7 +221,7 @@ export default function Dashboard() {
   const handleRunAudit = async () => {
     setAuditLoading(true);
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/audit`, { 
+      const response = await backendFetch(`/api/audit`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scoreHistory: scoreHistory }) // Send past score progression
@@ -237,7 +253,7 @@ export default function Dashboard() {
   const handleCompileStrategy = async () => {
     setStrategyLoading(true);
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/strategy`, {
+      const response = await backendFetch(`/api/strategy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: strategyInput })
@@ -268,7 +284,7 @@ export default function Dashboard() {
   const handleRunSentinel = async () => {
     setSentinelLoading(true);
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/sentinel`, { method: "POST" });
+      const response = await backendFetch(`/api/sentinel`, { method: "POST" });
       const data = await response.json();
       console.log("📊 [Diagnostic] Sentinel response:", data);
 
@@ -295,7 +311,7 @@ export default function Dashboard() {
     setTerminalLogs([]);
     try {
       setTerminalLogs([`[${new Date().toISOString().slice(11, 23)}] > Initializing scanning agent...`]);
-      const response = await fetch(`${BACKEND_API_BASE}/api/agent?coin=${coinInput}`);
+      const response = await backendFetch(`/api/agent?coin=${coinInput}`);
       const data = await response.json();
       console.log("📊 [Diagnostic] Agent scan response:", data);
 
@@ -328,7 +344,7 @@ export default function Dashboard() {
     setTerminalLogs([`[${new Date().toISOString().slice(11, 23)}] 🔒 [ShieldSDK] Intercepting transaction request...`]);
     
     try {
-      const response = await fetch(`${BACKEND_API_BASE}/api/agent`, {
+      const response = await backendFetch(`/api/agent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(agentProposal)
@@ -378,7 +394,7 @@ export default function Dashboard() {
     if (nextState) {
       setExecutionMessage("🤖 [Autopilot] Mode Engaged. Commencing active market monitoring...");
       try {
-        const response = await fetch(`${BACKEND_API_BASE}/api/autopilot`, {
+        const response = await backendFetch(`/api/autopilot`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ coin: coinInput })

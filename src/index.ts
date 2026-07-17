@@ -148,7 +148,7 @@ const server = http.createServer(async (req, res) => {
   // Set standard CORS headers to allow Vercel browser connections
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
 
   // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
@@ -158,6 +158,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url || '', `http://${req.headers.host}`);
+
+  // Optional shared-secret gate on the API surface (audit Recommendation #6).
+  // This server has no other auth layer: without it, anyone who discovers the
+  // Render URL can call /api/agent and attempt to place trades, relying solely
+  // on the AAS Shield's internal checks as the only line of defense. Setting
+  // ASIWAJU_API_KEY makes this an explicit second layer. Left optional (rather
+  // than hard-required) for backward compatibility with existing deployments
+  // that haven't set it yet — but a clear warning is logged either way so the
+  // gap isn't silent.
+  const configuredApiKey = process.env.ASIWAJU_API_KEY;
+  if (url.pathname.startsWith('/api/')) {
+    if (configuredApiKey) {
+      const providedKey = req.headers['x-api-key'];
+      if (providedKey !== configuredApiKey) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Unauthorized: missing or invalid X-API-Key header.' }));
+      }
+    } else {
+      console.warn('⚠️ [Security] ASIWAJU_API_KEY is not set — the /api/* surface is unauthenticated and reachable by anyone with the Render URL.');
+    }
+  }
 
   try {
     // 1. Committee Endpoint (Returns structured JSON)
@@ -426,9 +447,9 @@ server.listen(PORT, () => {
     }
   }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop: Adjusted to once every 4 hours to minimize token consumption
+  // 2. Autonomous Portfolio Scanner Loop: Adjusted to once every 6 hours to minimize token consumption
   setInterval(async () => {
-    console.log("🤖 [Autopilot] Triggering 4-hour background portfolio scan cycle...");
+    console.log("🤖 [Autopilot] Triggering 6-hour background portfolio scan cycle...");
     try {
       const result = await runAutopilotExecution();
       const [status, symbol, side, price, details] = result.split(":");
@@ -465,5 +486,5 @@ server.listen(PORT, () => {
     } catch (error: any) {
       console.error("❌ Exception during background autopilot scan:", error.message);
     }
-  }, 6 * 60 * 60 * 1000); // Triggered exactly every 4 hours (14,400,000 ms)
+  }, 6 * 60 * 60 * 1000); // Triggered every 6 hours (21,600,000 ms)
 });

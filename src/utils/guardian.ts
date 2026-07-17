@@ -92,7 +92,7 @@ export async function runBehavioralAudit(): Promise<string> {
       trades = await fetchDynamicPublicFills("SOLUSDT");
       isDemoMode = true;
     }
-  } catch (error) {
+  } catch {
     console.warn("⚠️ Bitget API signature rejected or geoblocked. Fetching dynamic public trading feeds.");
     trades = await fetchDynamicPublicFills("SOLUSDT");
     isDemoMode = true;
