@@ -10,7 +10,7 @@ import { bot, convertMarkdownToTelegramHtml } from './bot';
 import { client } from './discord';
 
 // Import our core utility modules (Strict ES6 Imports - No raw require blocks)
-import { runAutopilotExecution, scanMarketOpportunity, executeApprovedTrade } from './utils/agent';
+import { runAutopilotExecution, scanMarketOpportunity, executeApprovedTrade, runPositionMonitorOnce } from './utils/agent';
 import { runInvestmentCommittee } from './utils/committee';
 import { runBehavioralAudit } from './utils/guardian';
 import { generateStrategyAndBacktest } from './utils/lab';
@@ -447,7 +447,24 @@ server.listen(PORT, () => {
     }
   }, 10 * 60 * 1000);
 
-  // 2. Autonomous Portfolio Scanner Loop: Adjusted to once every 6 hours to minimize token consumption
+  // 2. Position Monitor Loop: checks every open (tracked) position against
+  // its live price roughly once a minute and closes anything that has hit
+  // its stop-loss or take-profit. This runs regardless of AUTOPILOT_ENABLED
+  // — it's a risk-reduction watchdog over whatever positions already exist,
+  // not a new-trade-opening mechanism, so there's no reason to gate it
+  // behind the same switch. See src/utils/positions.ts for design notes.
+  setInterval(async () => {
+    try {
+      const closed = await runPositionMonitorOnce();
+      if (closed.length > 0) {
+        console.log(`📡 [Position Monitor] Closed ${closed.length} position(s) this cycle: ${closed.join(', ')}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Exception during position monitor cycle:', error.message);
+    }
+  }, 60 * 1000);
+
+  // 3. Autonomous Portfolio Scanner Loop: Adjusted to once every 6 hours to minimize token consumption
   setInterval(async () => {
     console.log("🤖 [Autopilot] Triggering 6-hour background portfolio scan cycle...");
     try {

@@ -5,6 +5,9 @@ import { getBitgetHeaders } from './bitget';
 import { runNewsAudit } from './sentinel';
 import { extractJsonFromText } from './json';
 import { callUnifiedAI } from './ai';
+import type { TradeRequest } from '../infra/RiskGuardrail';
+import { AsiwajuAgentShield } from '../infra/ShieldSDK';
+import { getOpenPositions, untrackPosition, evaluateExitTrigger } from './positions';
 
 export interface TradeProposal {
   symbol: string;
@@ -163,9 +166,14 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
     console.warn("⚠️ Failed to parse news sentiment. Proceeding on technicals alone:", err.message);
   }
 
-  const apiKey = process.env.QWEN_API_KEY;
-  if (!apiKey) throw new Error("QWEN_API_KEY is missing from environment variables.");
-
+  // NOTE: no early API-key check here. callUnifiedAI() below already
+  // implements its own Qwen -> MuleRun failover and raises a clear,
+  // combined error if *both* providers are unavailable. A prior version of
+  // this function hard-required QWEN_API_KEY specifically before ever
+  // attempting a call, which meant every scan (manual and autopilot alike)
+  // threw immediately whenever that one key was missing or exhausted —
+  // even when MULERUN_API_KEY was correctly configured and would have
+  // worked fine as a fallback.
   const agentBrainPrompt = `You are the Chief Quantitative Execution Agent at Asiwaju AI Hub. 
   Your objective is to evaluate current market data, price points, Sentinel sentiment digests, and the active Market Regime metrics.
   
@@ -203,12 +211,14 @@ export async function scanMarketOpportunity(coin: string): Promise<TradeProposal
 
     const proposal: any = extractShieldJson(resultText);
 
-    if (proposal.side === "buy") {
-      proposal.quantity = "5.0000"; 
-    } else {
-      const quantityNum = 5 / priceNum;
-      proposal.quantity = quantityNum.toFixed(4);
-    }
+    // Size every proposal to a fixed ~$5 notional position, consistent with
+    // the RiskGuardrail's $10 max trade size. This used to hardcode
+    // "5.0000" units on the buy side — i.e. 5 whole BTC/ETH/SOL, not $5 of
+    // it — which meant every autopilot buy attempted a wildly oversized
+    // market order (worth thousands to hundreds of thousands of dollars)
+    // instead of the intended small test position.
+    const quantityNum = 5 / priceNum;
+    proposal.quantity = quantityNum.toFixed(4);
 
     console.log(`🎯 [DIAGNOSTIC] Active TradeProposal resolved successfully for ${symbol}. Mapping parameters...`);
     return proposal as TradeProposal;
@@ -257,9 +267,25 @@ export async function executeApprovedTrade(proposal: TradeProposal): Promise<str
 
 // 5. Autonomous Autopilot Layer: Scans, Analyzes, and Directly Executes
 export async function runAutopilotExecution(specificCoin?: string): Promise<string> {
+  // SAFETY KILL SWITCH: autopilot is OFF by default. It must be explicitly
+  // enabled with AUTOPILOT_ENABLED=true. This is enforced here — the single
+  // shared entry point used by the REST endpoint, the background 6-hour
+  // loop, and the Telegram/Discord bot commands — so no caller can bypass
+  // it. Added after a real incident where autopilot placed live buy orders
+  // that were never automatically closed (see runPositionMonitorOnce below
+  // for the accompanying take-profit/stop-loss enforcement this was
+  // missing entirely). Re-enable only once you've reviewed
+  // AUDIT_REPORT.md's autopilot incident entry and are comfortable with the
+  // current guarantees.
+  if (process.env.AUTOPILOT_ENABLED !== 'true') {
+    const msg = 'AUTOPILOT_DISABLED: Autonomous execution is disabled by default as of this build. Set AUTOPILOT_ENABLED=true to opt in explicitly after reviewing AUDIT_REPORT.md.';
+    console.warn(`🛑 [Autopilot] ${msg}`);
+    return msg;
+  }
+
   const coinsToScan = specificCoin ? [specificCoin.toUpperCase()] : ['BTC', 'SOL', 'ETH'];
   console.log(`🤖 [Autopilot] Commencing autonomous scan loop for: ${coinsToScan.join(', ')}...`);
-  
+
   for (const coin of coinsToScan) {
     try {
       const proposal = await scanMarketOpportunity(coin);
@@ -268,24 +294,105 @@ export async function runAutopilotExecution(specificCoin?: string): Promise<stri
         continue;
       }
 
-      const confidenceScore = 9; 
-      const MIN_CONFIDENCE_REQUIRED = 8;
+      console.log(`🤖 [Autopilot] Candidate setup found for ${coin}. Routing through Asiwaju Agent Shield before execution...`);
 
-      if (confidenceScore >= MIN_CONFIDENCE_REQUIRED) {
-        console.log(`🤖 [Autopilot] Target verified for ${coin}. Executing...`);
-        const result = await executeApprovedTrade(proposal);
-        const [status, details] = result.split(':');
-        
-        if (status === 'SUCCESS') {
-          return `EXECUTED:${proposal.symbol}:${proposal.side.toUpperCase()}:${proposal.price}:${details}`;
-        } else {
-          return `FAILED: Order rejected by Bitget exchange engine: ${details}`;
-        }
+      // IMPORTANT: this MUST go through the same Shield pipeline as every
+      // manually-approved trade (prompt safety, $10 sizing cap, symbol
+      // whitelist, cooldown, re-entrancy/replay guards). This used to call
+      // executeApprovedTrade() directly instead, skipping all of the above,
+      // gated only by a hardcoded `confidenceScore = 9 >= 8` constant that
+      // was never actually computed from anything — i.e. it always passed.
+      const tradeRequest: TradeRequest = {
+        symbol: proposal.symbol,
+        side: proposal.side,
+        price: parseFloat(proposal.price),
+        quantity: parseFloat(proposal.quantity)
+      };
+
+      const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+        `Autonomous autopilot trade for ${proposal.symbol}: ${proposal.reason}`,
+        tradeRequest,
+        `autopilot_sig_${Date.now()}_${coin}`
+      );
+
+      if (shieldReport.success) {
+        return `EXECUTED:${proposal.symbol}:${proposal.side.toUpperCase()}:${proposal.price}:${shieldReport.orderId}`;
+      } else {
+        console.log(`🤖 [Autopilot] Shield blocked ${coin}: ${shieldReport.message}. Continuing scan...`);
+        continue;
       }
     } catch (error: any) {
       console.error(`❌ Exception during autopilot scan on ${coin}:`, error.message);
     }
   }
 
-  return "NO_SETUP: All monitored assets are in ranging sideways markets. Execution safely aborted.";
+  return "NO_SETUP: All monitored assets are in ranging sideways markets, or were blocked by the Agent Shield. Execution safely aborted.";
+}
+
+// 6. Position Monitor: checks every open (tracked) position against its
+// current live price and closes it if the stop-loss or take-profit has
+// been hit. This is the piece that was missing entirely before: opening a
+// trade with stopLoss/takeProfit numbers attached did not mean anything
+// actually watched for those levels being reached. See src/utils/positions.ts
+// for the full design notes and known limitations (in-memory only, not a
+// substitute for exchange-native conditional orders).
+export async function runPositionMonitorOnce(): Promise<string[]> {
+  const closedSummaries: string[] = [];
+  const positions = getOpenPositions();
+
+  if (positions.length === 0) {
+    return closedSummaries;
+  }
+
+  console.log(`📡 [Position Monitor] Checking ${positions.length} open position(s) against live prices...`);
+
+  for (const position of positions) {
+    try {
+      const currentPriceStr = await getLivePrice(position.symbol);
+      const currentPrice = parseFloat(currentPriceStr);
+
+      if (isNaN(currentPrice) || currentPrice <= 0) {
+        console.warn(`⚠️ [Position Monitor] Could not resolve a valid live price for ${position.symbol}. Skipping this cycle.`);
+        continue;
+      }
+
+      const trigger = evaluateExitTrigger(position, currentPrice);
+      if (!trigger) {
+        continue;
+      }
+
+      console.log(`🎯 [Position Monitor] ${trigger} hit for ${position.symbol}: current $${currentPrice}, SL ${position.stopLoss}, TP ${position.takeProfit}. Closing position...`);
+
+      const exitSide: 'buy' | 'sell' = position.side === 'buy' ? 'sell' : 'buy';
+      const exitTradeRequest: TradeRequest = {
+        symbol: position.symbol,
+        side: exitSide,
+        price: currentPrice,
+        quantity: position.quantity
+      };
+
+      const shieldReport = await AsiwajuAgentShield.processSecureTrade(
+        `Automatic ${trigger} exit for ${position.symbol} position (entry $${position.entryPrice}, opened ${new Date(position.openedAt).toISOString()}).`,
+        exitTradeRequest,
+        `exit_${trigger}_${position.id}`,
+        /* isPositionExit */ true
+      );
+
+      if (shieldReport.success) {
+        untrackPosition(position.id);
+        const summary = `${trigger}:${position.symbol}:${shieldReport.orderId}`;
+        console.log(`✅ [Position Monitor] Closed ${position.symbol} on ${trigger}. Order ID: ${shieldReport.orderId}`);
+        closedSummaries.push(summary);
+      } else {
+        // Deliberately left tracked: we'll retry on the next monitoring
+        // cycle rather than silently dropping a position that failed to
+        // close (e.g. a transient exchange rejection).
+        console.error(`❌ [Position Monitor] Failed to close ${position.symbol} on ${trigger} trigger: ${shieldReport.message}. Will retry next cycle.`);
+      }
+    } catch (error: any) {
+      console.error(`❌ [Position Monitor] Exception while evaluating ${position.symbol}:`, error.message);
+    }
+  }
+
+  return closedSummaries;
 }

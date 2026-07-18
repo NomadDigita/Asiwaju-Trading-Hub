@@ -113,3 +113,60 @@ describe('evaluateRiskGuardrails', () => {
     expect(report.passed).toBe(true);
   });
 });
+
+describe('evaluateRiskGuardrails — isPositionExit exemptions', () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+    // Use a distinct anchor far from the other describe block's timestamps
+    // above, so this suite's starting point can never collide with
+    // whatever lastTradeTimestamp that block's tests left in the shared
+    // module-level state.
+    vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  beforeEach(() => {
+    advancePastCooldown();
+  });
+
+  it('exempts a position-closing exit from the $10 sizing cap', () => {
+    // A winning position can grow well beyond its original $10 entry size —
+    // closing it must never be blocked by the sizing cap.
+    const bigExit: TradeRequest = { symbol: 'BTCUSDT', side: 'sell', price: 67000, quantity: 1 };
+    const report = evaluateRiskGuardrails(bigExit, { isPositionExit: true });
+    expect(report.passed).toBe(true);
+  });
+
+  it('exempts a position-closing exit from the cooldown', () => {
+    const entry: TradeRequest = { symbol: 'SOLUSDT', side: 'buy', price: 172.5, quantity: 0.029 };
+    expect(evaluateRiskGuardrails(entry).passed).toBe(true);
+
+    // Immediately try to close it — a normal trade would be blocked by the
+    // cooldown here, but an exit must not be.
+    const exit: TradeRequest = { symbol: 'SOLUSDT', side: 'sell', price: 168.0, quantity: 0.029 };
+    const exitReport = evaluateRiskGuardrails(exit, { isPositionExit: true });
+    expect(exitReport.passed).toBe(true);
+  });
+
+  it('still enforces the symbol whitelist even on exits', () => {
+    const exit: TradeRequest = { symbol: 'SHIBUSDT', side: 'sell', price: 0.000025, quantity: 1000 };
+    const report = evaluateRiskGuardrails(exit, { isPositionExit: true });
+    expect(report.passed).toBe(false);
+    expect(report.violations.some(v => v.includes('Asset validation violation'))).toBe(true);
+  });
+
+  it('a passing exit still arms the cooldown for the NEXT (non-exit) trade', () => {
+    const exit: TradeRequest = { symbol: 'SOLUSDT', side: 'sell', price: 168.0, quantity: 0.029 };
+    expect(evaluateRiskGuardrails(exit, { isPositionExit: true }).passed).toBe(true);
+
+    // A fresh, unrelated entry immediately after should still respect the
+    // cooldown normally — exits don't grant a free pass to everything else.
+    const freshEntry: TradeRequest = { symbol: 'SOLUSDT', side: 'buy', price: 172.5, quantity: 0.029 };
+    const report = evaluateRiskGuardrails(freshEntry);
+    expect(report.passed).toBe(false);
+    expect(report.violations.some(v => v.includes('Rate-limit violation'))).toBe(true);
+  });
+});

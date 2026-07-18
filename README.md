@@ -23,6 +23,8 @@
 
 </div>
 
+> ⚠️ **Read before running this with real funds.** On 2026-07-17, a bug in the autopilot execution path bypassed the AAS Shield entirely and placed oversized live buy orders with no automatic exit — see the incident writeup at the top of `AUDIT_REPORT.md`'s Follow-up Fix Log for the full root cause and fixes. As a direct result: **Autopilot Mode is now disabled by default** (requires `AUTOPILOT_ENABLED=true`), and a stop-loss/take-profit position monitor now runs automatically — but it is in-memory only (resets on process restart) and has not been exercised against the live Bitget API from the development environment that built it. Verify manually with a small position before trusting it unattended.
+
 ---
 
 <br>
@@ -182,7 +184,7 @@ An unauthenticated news scraper that parses global headlines via the CryptoCompa
 
 ### <img src="https://readme-typing-svg.demolab.com?font=Space+Mono&weight=600&size=18&pause=4000&color=39FF14&vCenter=true&width=500&lines=5.+AI+Execution+Agent+%26+Autopilot+Console" alt="AI Autopilot" />
 Scans markets using the **Market Regime Detection Engine** (calculating 24h price-changes and volatility metrics) to dynamically shift trading style (Range-bound mean reversion vs. Momentum breakout). Scans are secured via the AAS SDK.
-*   **Autopilot Mode:** A 24/7 background worker that scans whitelisted assets (`['BTC', 'SOL', 'ETH']`) every 6 hours to minimize token consumption, executing trades and broadcasting alert notifications to Telegram and Discord.
+*   **Autopilot Mode:** **Disabled by default** — requires `AUTOPILOT_ENABLED=true` (see below and the incident notes in `AUDIT_REPORT.md`). When enabled, a 24/7 background worker scans whitelisted assets (`['BTC', 'SOL', 'ETH']`) every 6 hours, and every trade it opens is now automatically tracked by a separate 60-second position-monitor loop that watches the live price and closes the position when it hits its stop-loss or take-profit — this monitor runs independently of the switch above, since it only ever closes existing positions, never opens new ones.
 
 ---
 
@@ -258,6 +260,7 @@ Below is the exhaustive registry of environment variables used in the Asiwaju ec
 | `MULERUN_API_KEY` | Server-side | Authenticates with MuleRun gateway. | **Yes** | AI calls fall back to Qwen gateway. |
 | `TAVILY_API_KEY` | Server-side | Authenticates with Tavily Search API. | *Optional* | Real-time web search context is bypassed. |
 | `ASIWAJU_API_KEY` | Server-side & Client | Shared secret gating the `/api/*` REST surface (sent as `X-API-Key`). | *Strongly recommended* | Without it, `/api/*` is unauthenticated and reachable by anyone with the Render URL — the AAS Shield's internal guardrails become the only remaining line of defense. Set the same value on the client as `NEXT_PUBLIC_ASIWAJU_API_KEY` so the dashboard sends it. |
+| `AUTOPILOT_ENABLED` | Server-side | Must be exactly `true` to allow autonomous execution to run at all. | *Off by default* | Without it, `/api/autopilot`, the 6-hour background scanner, and the `/autopilot` bot commands all return `AUTOPILOT_DISABLED` and take no action. See `AUDIT_REPORT.md` for why this defaults to off. |
 | `PORT` | Server-side | Port assigned by Render. | *Optional* | Defaults to port `8080`. |
 | `RENDER_EXTERNAL_URL` | Server-side | Active Render workspace URL. | *Optional* | Used for keep-awake self-pings. |
 
